@@ -1,18 +1,19 @@
 local Visuals = {}
 local PlayerVisuals = {}
 local StorageVisuals = {}
-local UILinesFolder
+local UIOverlayGui -- Наш новый ScreenGui контейнер для 2D элементов!
 
 function Visuals.Init(Config, ChamsConfig, FriendsList)
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
-    local sg = LocalPlayer:WaitForChild("PlayerGui")
+    local CoreGui = game:GetService("CoreGui")
     
-    UILinesFolder = Instance.new("Folder")
-    UILinesFolder.Name = "Grimoire_Skeletons"
-    UILinesFolder.Parent = sg:FindFirstChild("Grimoire_Godmode_v15") or sg
+    -- ФИКС: Создаем настоящий ScreenGui для отрисовки боксов и скелетов на экране!
+    UIOverlayGui = Instance.new("ScreenGui")
+    UIOverlayGui.Name = "Grimoire_Render_Bypass"
+    UIOverlayGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    UIOverlayGui.Parent = CoreGui
 
-    -- Глубокий поиск модели игрока по всему Workspace (Фикс для Crim!)
     local function GetRealCharacter(player)
         if player.Character then return player.Character end
         for _, model in ipairs(workspace:GetChildren()) do
@@ -27,60 +28,62 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
     local function CreatePlayerESP(player)
         if player == LocalPlayer then return end
         
+        --Billboard для имени (Остается сверху)
         local BBGui = Instance.new("BillboardGui")
-        BBGui.Size = UDim2.new(0, 200, 0, 50)
+        BBGui.Size = UDim2.new(0, 200, 0, 30)
         BBGui.StudsOffset = Vector3.new(0, 3.5, 0)
         BBGui.AlwaysOnTop = true
         BBGui.Enabled = false
-        BBGui.Parent = UILinesFolder.Parent
-
-        local Container = Instance.new("Frame")
-        Container.BackgroundTransparency = 1
-        Container.Size = UDim2.new(1, 0, 1, 0)
-        Container.Parent = BBGui
+        BBGui.Parent = UIOverlayGui
 
         local NameLabel = Instance.new("TextLabel")
+        NameLabel.Size = UDim2.new(1, 0, 1, 0)
         NameLabel.BackgroundTransparency = 1
-        NameLabel.Size = UDim2.new(1, 0, 0, 20)
         NameLabel.Font = Enum.Font.Code
         NameLabel.TextColor3 = Color3.fromRGB(255,255,255)
         NameLabel.TextStrokeTransparency = 0
-        NameLabel.Parent = Container
+        NameLabel.Parent = BBGui
+
+        --Billboard для оружия (ТЕПЕРЬ СДВИГАЕМ ВНИЗ, ПОД СИЛУЭТ!)
+        local BBGuiWeapon = Instance.new("BillboardGui")
+        BBGuiWeapon.Size = UDim2.new(0, 200, 0, 20)
+        BBGuiWeapon.StudsOffset = Vector3.new(0, -3.5, 0) -- Отрицательное смещение = строго внизу!
+        BBGuiWeapon.AlwaysOnTop = true
+        BBGuiWeapon.Enabled = false
+        BBGuiWeapon.Parent = UIOverlayGui
 
         local WeaponLabel = Instance.new("TextLabel")
+        WeaponLabel.Size = UDim2.new(1, 0, 1, 0)
         WeaponLabel.BackgroundTransparency = 1
-        WeaponLabel.Size = UDim2.new(1, 0, 0, 20)
-        WeaponLabel.Position = UDim2.new(0, 0, 0, 20)
         WeaponLabel.Font = Enum.Font.Code
         WeaponLabel.TextColor3 = Color3.fromRGB(255, 220, 100)
         WeaponLabel.TextStrokeTransparency = 0
         WeaponLabel.TextSize = 10
-        WeaponLabel.Parent = Container
+        WeaponLabel.Parent = BBGuiWeapon
 
+        -- Рамка бокса (Теперь внутри ScreenGui!)
         local BoxFrame = Instance.new("Frame")
         BoxFrame.BackgroundTransparency = 1
         BoxFrame.BorderSizePixel = 1
         BoxFrame.BorderColor3 = ChamsConfig.EnemyColor
         BoxFrame.Visible = false
-        BoxFrame.Parent = UILinesFolder.Parent
+        BoxFrame.Parent = UIOverlayGui
 
+        -- HP Bar (Внутри ScreenGui!)
         local HPBar = Instance.new("Frame")
         HPBar.BorderSizePixel = 0
         HPBar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
         HPBar.Visible = false
-        HPBar.Parent = UILinesFolder.Parent
+        HPBar.Parent = UIOverlayGui
 
-        local Highlight = Instance.new("Highlight")
-        Highlight.Enabled = false
-
-        -- Head Circle
+        -- Круг головы скелета
         local HeadCircle = Instance.new("Frame")
-        HeadCircle.Size = UDim2.new(0, 10, 0, 12)
+        HeadCircle.Size = UDim2.new(0, 12, 0, 12)
         HeadCircle.AnchorPoint = Vector2.new(0.5, 0.5)
         HeadCircle.BackgroundColor3 = ChamsConfig.EnemyColor
         HeadCircle.BorderSizePixel = 0
         HeadCircle.Visible = false
-        HeadCircle.Parent = UILinesFolder.Parent
+        HeadCircle.Parent = UIOverlayGui
         
         local Corner = Instance.new("UICorner")
         Corner.CornerRadius = UDim.new(1, 0)
@@ -101,7 +104,7 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
             LFrame.BackgroundColor3 = ChamsConfig.EnemyColor
             LFrame.Visible = false
             LFrame.AnchorPoint = Vector2.new(0.5, 0)
-            LFrame.Parent = UILinesFolder
+            LFrame.Parent = UIOverlayGui
             table.insert(Lines, {Frame = LFrame, PartA = bonePairs[i][1], PartB = bonePairs[i][2]})
         end
 
@@ -110,10 +113,14 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
         NeckLine.BackgroundColor3 = ChamsConfig.EnemyColor
         NeckLine.Visible = false
         NeckLine.AnchorPoint = Vector2.new(0.5, 0)
-        NeckLine.Parent = UILinesFolder
+        NeckLine.Parent = UIOverlayGui
+
+        local Highlight = Instance.new("Highlight")
+        Highlight.Enabled = false
 
         PlayerVisuals[player] = {
             BBGui = BBGui, 
+            BBGuiWeapon = BBGuiWeapon,
             Name = NameLabel, 
             Weapon = WeaponLabel, 
             Box = BoxFrame, 
@@ -151,14 +158,10 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
                 
                 if (isSafe or isRegister or isLoot) and not name:find("atm") and not pName:find("atm") and not name:find("zone") then
                     local isOpen = false
-                    if obj.Parent:FindFirstChild("Open") or obj:FindFirstChild("Open") or pName:find("broken") or name:find("broken") then
-                        isOpen = true
-                    end
+                    if obj.Parent:FindFirstChild("Open") or obj:FindFirstChild("Open") or pName:find("broken") or name:find("broken") then isOpen = true end
                     
                     local prompt = obj:FindFirstChildOfClass("ProximityPrompt") or obj.Parent:FindFirstChildOfClass("ProximityPrompt")
-                    if prompt and not prompt.Enabled then
-                        isOpen = true
-                    end
+                    if prompt and not prompt.Enabled then isOpen = true end
                     
                     local allowed = (isSafe and Config.Storage_Safes) or (isRegister and Config.Storage_Registers) or (isLoot and Config.Storage_Loot)
                     
@@ -169,7 +172,7 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
                             BB.Size = UDim2.new(0, 130, 0, 20)
                             BB.AlwaysOnTop = true
                             BB.Enabled = true
-                            BB.Parent = UILinesFolder.Parent
+                            BB.Parent = UIOverlayGui
                             
                             local Txt = Instance.new("TextLabel")
                             Txt.Size = UDim2.new(1, 0, 1, 0)
@@ -216,14 +219,8 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
     local Camera = workspace.CurrentCamera
     local inset = GuiService:GetGuiInset()
 
-    if Config.Fullbright_Enabled then
-        local g = Config.Fullbright_Gamma
-        Lighting.Ambient = Color3.fromRGB(g, g, g)
-        Lighting.OutdoorAmbient = Color3.fromRGB(g, g, g)
-    end
-
     for player, objs in pairs(PlayerVisuals) do
-        local pChar = objs.GetChar() -- Юзаем наш фикс-поиск модельки!
+        local pChar = objs.GetChar()
         local pHum = pChar and pChar:FindFirstChildOfClass("Humanoid")
         local pHead = pChar and pChar:FindFirstChild("Head")
         local hrp = pChar and (pChar:FindFirstChild("HumanoidRootPart") or pChar:FindFirstChild("Torso"))
@@ -232,14 +229,11 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
             local isFriend = FriendsList[player.Name]
             local targetColor = isFriend and ChamsConfig.FriendColor or ChamsConfig.EnemyColor
             
-            -- Фикс сканирования оружия в Crim
             local currentWeapon = "[Unarmed]"
             if pChar then
                 local tool = pChar:FindFirstChildOfClass("Tool")
-                if tool then 
-                    currentWeapon = "[" .. tool.Name .. "]" 
+                if tool then currentWeapon = "[" .. tool.Name .. "]"
                 else
-                    -- Сканируем правую руку на притреченные меши оружия
                     local rArm = pChar:FindFirstChild("RightHand") or pChar:FindFirstChild("Right Upper Arm")
                     local handle = rArm and rArm:FindFirstChildOfClass("Accessory") or pChar:FindFirstChildOfClass("Accessory")
                     if handle then currentWeapon = "[" .. handle.Name .. "]" end
@@ -247,21 +241,21 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
             end
 
             if objs.BBGui.Adornee ~= pHead then objs.BBGui.Adornee = pHead end
-            objs.BBGui.Enabled = Config.ShowNames or Config.ShowWeapon
+            if objs.BBGuiWeapon.Adornee ~= hrp then objs.BBGuiWeapon.Adornee = hrp end
+            
+            objs.BBGui.Enabled = Config.ShowNames
+            objs.BBGuiWeapon.Enabled = Config.ShowWeapon
             
             if Config.ShowNames then
                 objs.Name.Text = player.Name .. " (" .. math.floor(pHum.Health) .. "HP)"
                 objs.Name.TextColor3 = targetColor
-                objs.Name.Visible = true
-            else objs.Name.Visible = false end
+            end
 
             if Config.ShowWeapon then
                 objs.Weapon.Text = currentWeapon
-                objs.Weapon.TextColor3 = Color3.fromRGB(255, 230, 100)
-                objs.Weapon.Visible = true
-            else objs.Weapon.Visible = false end
+            end
 
-            -- Фикс проекции 2D Боксов
+            -- Отрисовка 2D Боксов ПОВЕРХ ScreenGui
             local headPos, headOnScreen = Camera:WorldToViewportPoint(pHead.Position + Vector3.new(0, 1.2, 0))
             local legPos, legOnScreen = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3.2, 0))
 
@@ -293,7 +287,7 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
                 objs.Chams.FillColor = targetColor objs.Chams.Enabled = true
             else objs.Chams.Enabled = false end
 
-            -- Фикс Скелетов под R15 структуры Crim
+            -- Отрисовка Скелетов ПОВЕРХ ScreenGui
             if Config.Skeleton_Enabled then
                 local sHeadPos, headScreen = Camera:WorldToViewportPoint(pHead.Position)
                 if headScreen then
@@ -348,17 +342,13 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
                 for l = 1, #objs.Lines do objs.Lines[l].Frame.Visible = false end
             end
         else
-            objs.BBGui.Enabled = false 
-            objs.Chams.Enabled = false
-            objs.Box.Visible = false
-            objs.HP.Visible = false
-            objs.HeadCircle.Visible = false
-            objs.NeckLine.Visible = false
+            objs.BBGui.Enabled = false objs.BBGuiWeapon.Enabled = false
+            objs.Chams.Enabled = false objs.Box.Visible = false objs.HP.Visible = false
+            objs.HeadCircle.Visible = false objs.NeckLine.Visible = false
             for l = 1, #objs.Lines do objs.Lines[l].Frame.Visible = false end
         end
     end
 
-    -- Обновление ящиков
     if Config.Storage_Enabled and Config.ESP_Enabled then
         for obj, objs in pairs(StorageVisuals) do
             if obj and obj.Parent and objs.Part and objs.Part.Parent then
