@@ -8,7 +8,6 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
     local LocalPlayer = Players.LocalPlayer
     local CoreGui = game:GetService("CoreGui")
     
-    -- Контейнер для стабильного 2D рендеринга на экране
     UIOverlayGui = Instance.new("ScreenGui")
     UIOverlayGui.Name = "Grimoire_Render_Bypass"
     UIOverlayGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -28,7 +27,7 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
     local function CreatePlayerESP(player)
         if player == LocalPlayer then return end
         
-        -- Никнейм сверху
+        -- Ник сверху коробки
         local BBGui = Instance.new("BillboardGui")
         BBGui.Size = UDim2.new(0, 200, 0, 30)
         BBGui.StudsOffset = Vector3.new(0, 3.5, 0)
@@ -44,10 +43,10 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
         NameLabel.TextStrokeTransparency = 0
         NameLabel.Parent = BBGui
 
-        -- Оружие строго под ногами (Как на скриншоте Джека!)
+        -- Ствол СТРОГО ВНИЗУ, как на скриншоте из CS!
         local BBGuiWeapon = Instance.new("BillboardGui")
         BBGuiWeapon.Size = UDim2.new(0, 200, 0, 20)
-        BBGuiWeapon.StudsOffset = Vector3.new(0, -3.5, 0) -- Отрицательный сдвиг
+        BBGuiWeapon.StudsOffset = Vector3.new(0, -3.8, 0)
         BBGuiWeapon.AlwaysOnTop = true
         BBGuiWeapon.Enabled = false
         BBGuiWeapon.Parent = UIOverlayGui
@@ -58,18 +57,17 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
         WeaponLabel.Font = Enum.Font.Code
         WeaponLabel.TextColor3 = Color3.fromRGB(255, 220, 100)
         WeaponLabel.TextStrokeTransparency = 0
-        WeaponLabel.TextSize = 10
+        WeaponLabel.TextSize = 11
         WeaponLabel.Parent = BBGuiWeapon
 
-        -- Рамка бокса внутри ScreenGui
+        -- Настоящая рамка 2D бокса!
         local BoxFrame = Instance.new("Frame")
         BoxFrame.BackgroundTransparency = 1
-        BoxFrame.BorderSizePixel = 1
+        BoxFrame.BorderSizePixel = 2 -- Сделали контур жирнее и четче!
         BoxFrame.BorderColor3 = ChamsConfig.EnemyColor
         BoxFrame.Visible = false
         BoxFrame.Parent = UIOverlayGui
 
-        -- Полоска здоровья
         local HPBar = Instance.new("Frame")
         HPBar.BorderSizePixel = 0
         HPBar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
@@ -136,7 +134,7 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
     Players.PlayerAdded:Connect(CreatePlayerESP)
     for _, p in pairs(Players:GetPlayers()) do CreatePlayerESP(p) end
 
-    -- Сканер ящиков
+    -- Safe Scanner
     local function DeepDistributedStorageScan()
         if not Config.Storage_Enabled or not Config.ESP_Enabled then 
             for obj, objs in pairs(StorageVisuals) do pcall(function() objs.BB:Destroy() objs.High:Destroy() end) StorageVisuals[obj] = nil end
@@ -218,14 +216,15 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
     local GuiService = game:GetService("GuiService")
     local Camera = workspace.CurrentCamera
     local inset = GuiService:GetGuiInset()
+    
+    local targetColor = ChamsConfig.EnemyColor or Color3.fromRGB(255, 0, 128)
 
     if not _G.OrigAmbient then _G.OrigAmbient = Lighting.Ambient end
     if not _G.OrigOutdoor then _G.OrigOutdoor = Lighting.OutdoorAmbient end
 
-    -- Регулируемый Fullbright и Ambient Color Changer
     if Config.Fullbright_Enabled then
         if Config.Ambient_Custom then
-            Lighting.Ambient = Color3.fromRGB(140, 90, 180) -- Приятный неоновый фиолетовый
+            Lighting.Ambient = Color3.fromRGB(140, 90, 180)
             Lighting.OutdoorAmbient = Color3.fromRGB(60, 40, 90)
         else
             local g = Config.Fullbright_Gamma
@@ -245,7 +244,7 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
 
         if Config.ESP_Enabled and pHead and pHum and pHum.Health > 0 and hrp then
             local isFriend = FriendsList[player.Name]
-            local targetColor = isFriend and ChamsConfig.FriendColor or ChamsConfig.EnemyColor
+            local finalColor = isFriend and ChamsConfig.FriendColor or targetColor
             
             local currentWeapon = "[Unarmed]"
             if pChar then
@@ -266,24 +265,24 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
             
             if Config.ShowNames then
                 objs.Name.Text = player.Name .. " (" .. math.floor(pHum.Health) .. "HP)"
-                objs.Name.TextColor3 = targetColor
+                objs.Name.TextColor3 = finalColor
             end
 
             if Config.ShowWeapon then
                 objs.Weapon.Text = currentWeapon
             end
 
-            -- Отрисовка 2D боксов
-            local headPos, headOnScreen = Camera:WorldToViewportPoint(pHead.Position + Vector3.new(0, 1.2, 0))
-            local legPos, legOnScreen = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3.2, 0))
+            -- НАДЁЖНЫЙ РАСЧЁТ 2D БОКСОВ НА ЭКРАНЕ
+            local headPos, headOnScreen = Camera:WorldToViewportPoint(pHead.Position + Vector3.new(0, 1.4, 0))
+            local legPos, legOnScreen = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3.4, 0))
 
             if headOnScreen and legOnScreen and Config.ESP_Boxes then
                 local height = math.abs(headPos.Y - legPos.Y)
-                local width = height / 1.4
+                local width = height / 1.3
 
                 objs.Box.Size = UDim2.new(0, width, 0, height)
                 objs.Box.Position = UDim2.new(0, headPos.X - width/2, 0, (headPos.Y - inset.Y))
-                objs.Box.BorderColor3 = targetColor
+                objs.Box.BorderColor3 = finalColor
                 objs.Box.Visible = true
 
                 if Config.ShowHP then
@@ -302,15 +301,15 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
             -- Chams
             if Config.Chams_Enabled then
                 if not objs.Chams.Parent then objs.Chams.Parent = pChar end
-                objs.Chams.FillColor = targetColor objs.Chams.Enabled = true
+                objs.Chams.FillColor = finalColor objs.Chams.Enabled = true
             else objs.Chams.Enabled = false end
 
-            -- Отрисовка скелетов с кружком на голове
+            -- Скелеты
             if Config.Skeleton_Enabled then
                 local sHeadPos, headScreen = Camera:WorldToViewportPoint(pHead.Position)
                 if headScreen then
                     objs.HeadCircle.Position = UDim2.new(0, sHeadPos.X, 0, sHeadPos.Y - inset.Y)
-                    objs.HeadCircle.BackgroundColor3 = targetColor
+                    objs.HeadCircle.BackgroundColor3 = finalColor
                     objs.HeadCircle.Visible = true
                 else objs.HeadCircle.Visible = false end
 
@@ -326,7 +325,7 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
                         objs.NeckLine.Size = UDim2.new(0, 2, 0, dist)
                         objs.NeckLine.Position = UDim2.new(0, startV.X, 0, startV.Y)
                         objs.NeckLine.Rotation = angle - 90
-                        objs.NeckLine.BackgroundColor3 = targetColor
+                        objs.NeckLine.BackgroundColor3 = finalColor
                         objs.NeckLine.Visible = true
                     else objs.NeckLine.Visible = false end
                 else objs.NeckLine.Visible = false end
@@ -349,7 +348,7 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
                             line.Frame.Size = UDim2.new(0, 2, 0, dist)
                             line.Frame.Position = UDim2.new(0, startV.X, 0, startV.Y)
                             line.Frame.Rotation = angle - 90
-                            line.Frame.BackgroundColor3 = targetColor
+                            line.Frame.BackgroundColor3 = finalColor
                             line.Frame.Visible = true
                         else line.Frame.Visible = false end
                     else line.Frame.Visible = false end
@@ -364,15 +363,6 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
             objs.Chams.Enabled = false objs.Box.Visible = false objs.HP.Visible = false
             objs.HeadCircle.Visible = false objs.NeckLine.Visible = false
             for l = 1, #objs.Lines do objs.Lines[l].Frame.Visible = false end
-        end
-    end
-
-    if Config.Storage_Enabled and Config.ESP_Enabled then
-        for obj, objs in pairs(StorageVisuals) do
-            if obj and obj.Parent and objs.Part and objs.Part.Parent then
-                if objs.BB.Adornee ~= objs.Part then objs.BB.Adornee = objs.Part end
-                objs.BB.Enabled = true objs.High.Enabled = Config.Chams_Enabled
-            else pcall(function() objs.BB:Destroy() objs.High:Destroy() end) StorageVisuals[obj] = nil end
         end
     end
 end
