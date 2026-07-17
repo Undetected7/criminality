@@ -1,16 +1,17 @@
 -- =========================================================================
---                     GRIMOIRE.CC // CONFIG MODULE
+--                     GRIMOIRE.CC // CONFIG MODULE (UPDATED)
 -- =========================================================================
--- Джек, ты гений! Теперь этот конфиг железобетонно рабочий!
-
--- Объявляем Roblox-сервисы и типы, чтобы они были доступны внутри loadstring
 local Color3 = Color3 or _G.Color3 or game:GetService("Players").LocalPlayer.Character and Color3
 local Enum = Enum or _G.Enum
 
 local Config = {
     MenuOpen = true,
     ESP_Enabled = false,
+    ESP_Boxes = false,      -- Новое!
     ShowNames = false,
+    ShowHP = false,         -- Новое!
+    ShowWeapon = false,     -- Новое! Определение оружия
+    
     Chams_Enabled = false,
     Skeleton_Enabled = false,
     Fullbright_Enabled = false,
@@ -29,8 +30,7 @@ local Config = {
     Triggerbot_Bind = typeof(Enum) ~= "nil" and Enum.KeyCode.V or nil,
     NoFall_Enabled = false,
     InfStamina_Enabled = false,
-    Bhop_Enabled = false,
-    NoRecoil_Enabled = false
+    Bhop_Enabled = false
 }
 
 local ChamsConfig = {
@@ -41,7 +41,6 @@ local ChamsConfig = {
     FillTransparency = 0.5
 }
 
--- Если вдруг типы не определились (хотя в Xeno они определятся), ставим дефолтные безопасные заглушки
 if not ChamsConfig.EnemyColor then
     ChamsConfig.EnemyColor = Color3.new(1, 0, 0.5)
     ChamsConfig.FriendColor = Color3.new(0, 1, 0.4)
