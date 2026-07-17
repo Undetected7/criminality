@@ -1,5 +1,5 @@
 -- =========================================================================
---                     GRIMOIRE.CC // BY UNDETECTED
+--                     GRIMOIRE.CC // BY UNDETECTED (V17)
 -- =========================================================================
 local Color3 = Color3 or _G.Color3 or game:GetService("Players").LocalPlayer.Character and Color3
 local Enum = Enum or _G.Enum
@@ -13,10 +13,12 @@ local Config = {
     ShowWeapon = false,
     
     Chams_Enabled = false,
+    Chams_Hue = 0, -- Значение от 0 до 1 для радужного ползунка цвета!
     Skeleton_Enabled = false,
     Fullbright_Enabled = false,
     Fullbright_Gamma = 160,
-    Ambient_Custom = false, -- Новое! Кастомный цвет мира
+    Ambient_Custom = false,
+    NoPostProcessing = false, -- Новое!
     
     Storage_Enabled = false,
     Storage_Safes = true,
@@ -27,9 +29,10 @@ local Config = {
     Freecam_Bind = typeof(Enum) ~= "nil" and Enum.KeyCode.F or nil,
     Freecam_Speed = 1.2,
     
-    Camera_Override = false, -- Новое! Включение кастомной камеры
-    Camera_FOV = 90,         -- Угол обзора
-    Camera_Dist = 12         -- Дистанция от третьего лица
+    Camera_Override = false,
+    Camera_Bind = typeof(Enum) ~= "nil" and Enum.KeyCode.G or nil, -- Новое! Бинд на 3 лицо
+    Camera_FOV = 90,
+    Camera_Dist = 12
 }
 
 local ChamsConfig = {
