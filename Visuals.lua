@@ -12,6 +12,18 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
     UILinesFolder.Name = "Grimoire_Skeletons"
     UILinesFolder.Parent = sg:FindFirstChild("Grimoire_Godmode_v15") or sg
 
+    -- Глубокий поиск модели игрока по всему Workspace (Фикс для Crim!)
+    local function GetRealCharacter(player)
+        if player.Character then return player.Character end
+        for _, model in ipairs(workspace:GetChildren()) do
+            if model:IsA("Model") and model:FindFirstChild("Humanoid") and model:FindFirstChild("Head") then
+                local plr = Players:GetPlayerFromCharacter(model)
+                if plr == player then return model end
+            end
+        end
+        return nil
+    end
+
     local function CreatePlayerESP(player)
         if player == LocalPlayer then return end
         
@@ -45,7 +57,6 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
         WeaponLabel.TextSize = 10
         WeaponLabel.Parent = Container
 
-        -- 2D Box Frame
         local BoxFrame = Instance.new("Frame")
         BoxFrame.BackgroundTransparency = 1
         BoxFrame.BorderSizePixel = 1
@@ -53,7 +64,6 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
         BoxFrame.Visible = false
         BoxFrame.Parent = UILinesFolder.Parent
 
-        -- HP Bar Frame
         local HPBar = Instance.new("Frame")
         HPBar.BorderSizePixel = 0
         HPBar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
@@ -63,9 +73,9 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
         local Highlight = Instance.new("Highlight")
         Highlight.Enabled = false
 
-        -- Head circle
+        -- Head Circle
         local HeadCircle = Instance.new("Frame")
-        HeadCircle.Size = UDim2.new(0, 12, 0, 12)
+        HeadCircle.Size = UDim2.new(0, 10, 0, 12)
         HeadCircle.AnchorPoint = Vector2.new(0.5, 0.5)
         HeadCircle.BackgroundColor3 = ChamsConfig.EnemyColor
         HeadCircle.BorderSizePixel = 0
@@ -76,7 +86,6 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
         Corner.CornerRadius = UDim.new(1, 0)
         Corner.Parent = HeadCircle
 
-        -- R15 bones
         local bonePairs = {
             {"UpperTorso", "LowerTorso"},
             {"UpperTorso", "LeftUpperArm"}, {"LeftUpperArm", "LeftLowerArm"},
@@ -112,7 +121,8 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
             Chams = Highlight, 
             HeadCircle = HeadCircle,
             NeckLine = NeckLine,
-            Lines = Lines
+            Lines = Lines,
+            GetChar = function() return GetRealCharacter(player) end
         }
     end
 
@@ -206,32 +216,34 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
     local Camera = workspace.CurrentCamera
     local inset = GuiService:GetGuiInset()
 
-    if not _G.OriginalAmbient then _G.OriginalAmbient = Lighting.Ambient end
-    if not _G.OriginalOutdoorAmbient then _G.OriginalOutdoorAmbient = Lighting.OutdoorAmbient end
-
     if Config.Fullbright_Enabled then
         local g = Config.Fullbright_Gamma
         Lighting.Ambient = Color3.fromRGB(g, g, g)
         Lighting.OutdoorAmbient = Color3.fromRGB(g, g, g)
-    else
-        Lighting.Ambient = _G.OriginalAmbient
-        Lighting.OutdoorAmbient = _G.OriginalOutdoorAmbient
     end
 
     for player, objs in pairs(PlayerVisuals) do
-        local pChar = player.Character
+        local pChar = objs.GetChar() -- Юзаем наш фикс-поиск модельки!
         local pHum = pChar and pChar:FindFirstChildOfClass("Humanoid")
         local pHead = pChar and pChar:FindFirstChild("Head")
-        local hrp = pChar and pChar:FindFirstChild("HumanoidRootPart")
+        local hrp = pChar and (pChar:FindFirstChild("HumanoidRootPart") or pChar:FindFirstChild("Torso"))
 
         if Config.ESP_Enabled and pHead and pHum and pHum.Health > 0 and hrp then
             local isFriend = FriendsList[player.Name]
             local targetColor = isFriend and ChamsConfig.FriendColor or ChamsConfig.EnemyColor
             
+            -- Фикс сканирования оружия в Crim
             local currentWeapon = "[Unarmed]"
             if pChar then
                 local tool = pChar:FindFirstChildOfClass("Tool")
-                if tool then currentWeapon = "[" .. tool.Name .. "]" end
+                if tool then 
+                    currentWeapon = "[" .. tool.Name .. "]" 
+                else
+                    -- Сканируем правую руку на притреченные меши оружия
+                    local rArm = pChar:FindFirstChild("RightHand") or pChar:FindFirstChild("Right Upper Arm")
+                    local handle = rArm and rArm:FindFirstChildOfClass("Accessory") or pChar:FindFirstChildOfClass("Accessory")
+                    if handle then currentWeapon = "[" .. handle.Name .. "]" end
+                end
             end
 
             if objs.BBGui.Adornee ~= pHead then objs.BBGui.Adornee = pHead end
@@ -241,25 +253,21 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
                 objs.Name.Text = player.Name .. " (" .. math.floor(pHum.Health) .. "HP)"
                 objs.Name.TextColor3 = targetColor
                 objs.Name.Visible = true
-            else
-                objs.Name.Visible = false
-            end
+            else objs.Name.Visible = false end
 
             if Config.ShowWeapon then
                 objs.Weapon.Text = currentWeapon
                 objs.Weapon.TextColor3 = Color3.fromRGB(255, 230, 100)
                 objs.Weapon.Visible = true
-            else
-                objs.Weapon.Visible = false
-            end
+            else objs.Weapon.Visible = false end
 
-            -- 2D Boxes
-            local headPos, headOnScreen = Camera:WorldToViewportPoint(pHead.Position + Vector3.new(0, 1, 0))
-            local legPos, legOnScreen = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
+            -- Фикс проекции 2D Боксов
+            local headPos, headOnScreen = Camera:WorldToViewportPoint(pHead.Position + Vector3.new(0, 1.2, 0))
+            local legPos, legOnScreen = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3.2, 0))
 
             if headOnScreen and legOnScreen and Config.ESP_Boxes then
                 local height = math.abs(headPos.Y - legPos.Y)
-                local width = height / 1.5
+                local width = height / 1.4
 
                 objs.Box.Size = UDim2.new(0, width, 0, height)
                 objs.Box.Position = UDim2.new(0, headPos.X - width/2, 0, (headPos.Y - inset.Y))
@@ -269,36 +277,30 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
                 if Config.ShowHP then
                     local pct = math.clamp(pHum.Health / pHum.MaxHealth, 0, 1)
                     local hpHeight = height * pct
-
                     objs.HP.Size = UDim2.new(0, 3, 0, hpHeight)
                     objs.HP.Position = UDim2.new(0, (headPos.X - width/2) - 6, 0, (headPos.Y - inset.Y) + (height - hpHeight))
                     objs.HP.BackgroundColor3 = Color3.fromHSV(pct * 0.3, 1, 1)
                     objs.HP.Visible = true
-                else
-                    objs.HP.Visible = false
-                end
+                else objs.HP.Visible = false end
             else
                 objs.Box.Visible = false
                 objs.HP.Visible = false
             end
 
+            -- Chams
             if Config.Chams_Enabled then
                 if not objs.Chams.Parent then objs.Chams.Parent = pChar end
                 objs.Chams.FillColor = targetColor objs.Chams.Enabled = true
-            else 
-                objs.Chams.Enabled = false 
-            end
+            else objs.Chams.Enabled = false end
 
-            -- SKELETON WITH HEAD CIRCLE
+            -- Фикс Скелетов под R15 структуры Crim
             if Config.Skeleton_Enabled then
                 local sHeadPos, headScreen = Camera:WorldToViewportPoint(pHead.Position)
                 if headScreen then
                     objs.HeadCircle.Position = UDim2.new(0, sHeadPos.X, 0, sHeadPos.Y - inset.Y)
                     objs.HeadCircle.BackgroundColor3 = targetColor
                     objs.HeadCircle.Visible = true
-                else
-                    objs.HeadCircle.Visible = false
-                end
+                else objs.HeadCircle.Visible = false end
 
                 local torsoPart = pChar:FindFirstChild("UpperTorso") or pChar:FindFirstChild("Torso")
                 if torsoPart and headScreen then
@@ -314,12 +316,8 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
                         objs.NeckLine.Rotation = angle - 90
                         objs.NeckLine.BackgroundColor3 = targetColor
                         objs.NeckLine.Visible = true
-                    else
-                        objs.NeckLine.Visible = false
-                    end
-                else
-                    objs.NeckLine.Visible = false
-                end
+                    else objs.NeckLine.Visible = false end
+                else objs.NeckLine.Visible = false end
 
                 for l = 1, #objs.Lines do
                     local line = objs.Lines[l]
@@ -360,6 +358,7 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
         end
     end
 
+    -- Обновление ящиков
     if Config.Storage_Enabled and Config.ESP_Enabled then
         for obj, objs in pairs(StorageVisuals) do
             if obj and obj.Parent and objs.Part and objs.Part.Parent then
