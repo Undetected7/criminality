@@ -1,5 +1,6 @@
 local UI = {}
 
+-- ФИКС: Теперь аргументы строго соответствуют Лоадеру!
 function UI.Init(Config, ChamsConfig, FriendsList)
     local Players = game:GetService("Players")
     local UserInputService = game:GetService("UserInputService")
@@ -91,7 +92,6 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     CreateSubToggle("Filter: Registers", 35, "Storage_Registers", StorageSub)
     CreateSubToggle("Filter: Loose Loot Piles", 65, "Storage_Loot", StorageSub)
 
-    local isBindingFreecam = false
     local updatePreview
 
     CreateSubToggle("Show Boxes", 5, "ESP_Boxes", ESPSub, function() updatePreview() end)
@@ -102,7 +102,7 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     CreateSubToggle("Ambient Color Changer", 5, "Ambient_Custom", FullbrightSub)
     CreateSubToggle("Enable 3rd Person", 5, "Camera_Override", CameraSub)
 
-    -- Colour Picker
+    -- Colour Picker Slider
     local HueBar = Instance.new("TextButton")
     HueBar.Size = UDim2.new(0.9, 0, 0, 15)
     HueBar.Position = UDim2.new(0.05, 0, 0, 25)
@@ -113,7 +113,7 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     local UIGradient = Instance.new("UIGradient")
     UIGradient.Color = ColorSequence.new({
         ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-        ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 255, Yellow or 0)),
+        ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 255, 0)),
         ColorSequenceKeypoint.new(0.4, Color3.fromRGB(0, 255, 0)),
         ColorSequenceKeypoint.new(0.6, Color3.fromRGB(0, 255, 255)),
         ColorSequenceKeypoint.new(0.8, Color3.fromRGB(0, 0, 255)),
@@ -216,7 +216,7 @@ function UI.Init(Config, ChamsConfig, FriendsList)
             
             CloseAllSubMenus()
             
-            if configKey == "ESP_Enabled" then ESPSub.Position = UDim2.new(0, 10, 0, yPos + 75) ESPSub.Visible = not lastState
+            if configKey == "ESP_Enabled" then  ESPSub.Position = UDim2.new(0, 10, 0, yPos + 75) ESPSub.Visible = not lastState
             elseif configKey == "Fullbright_Enabled" then FullbrightSub.Position = UDim2.new(0, 10, 0, yPos + 75) FullbrightSub.Visible = not lastState
             elseif configKey == "Storage_Enabled" then StorageSub.Position = UDim2.new(0, 10, 0, yPos + 75) StorageSub.Visible = not lastState
             elseif configKey == "Camera_Override" then CameraSub.Position = UDim2.new(0, 10, 0, yPos + 75) CameraSub.Visible = not lastState
@@ -364,7 +364,7 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     _G.UpdateMenuPreviewFunc = updatePreview
     updatePreview()
 
-    -- ИСПРАВЛЕННЫЙ FRIENDS PANEL (БЕЗВЫЛЕТНЫЙ!)
+    -- БЕЗВЫЛЕТНЫЙ FRIENDS PANEL
     local FriendContainer = Instance.new("Frame")
     FriendContainer.Size = UDim2.new(0, 140, 1, -45)
     FriendContainer.Position = UDim2.new(0, 410, 0, 40)
@@ -396,15 +396,14 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     UIList.Parent = PlayerScroller
 
     local function UpdateFriendMenu()
+        if not FriendsList then return end
         for _, child in pairs(PlayerScroller:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
         local totalHeight = 0
         
-        -- Жёсткий фикс: проверяем, что массив игроков существует и не пустой!
         local currentPlayers = Players:GetPlayers()
         if currentPlayers then
             for i = 1, #currentPlayers do
                 local p = currentPlayers[i]
-                -- Проверяем существование самого объекта игрока и его имени (Защита от Nil!)
                 if p and p ~= LocalPlayer and p.Name then
                     totalHeight = totalHeight + 24
                     local PButton = Instance.new("TextButton")
