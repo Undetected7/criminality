@@ -16,6 +16,7 @@ local Config = {
     Skeleton_Enabled = false,
     Fullbright_Enabled = false,
     Fullbright_Gamma = 160,
+    Ambient_Custom = false, -- Новое! Кастомный цвет мира
     
     Storage_Enabled = false,
     Storage_Safes = true,
@@ -26,8 +27,9 @@ local Config = {
     Freecam_Bind = typeof(Enum) ~= "nil" and Enum.KeyCode.F or nil,
     Freecam_Speed = 1.2,
     
-    NoFall_Enabled = false,
-    InfStamina_Enabled = false
+    Camera_Override = false, -- Новое! Включение кастомной камеры
+    Camera_FOV = 90,         -- Угол обзора
+    Camera_Dist = 12         -- Дистанция от третьего лица
 }
 
 local ChamsConfig = {
