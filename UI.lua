@@ -9,11 +9,12 @@ function UI.Init(Config, FriendsList)
     -- База интерфейса
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "Grimoire_Godmode_v15"
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.Parent = CoreGui
     ScreenGui.ResetOnSpawn = false
 
     local MenuFrame = Instance.new("Frame")
-    MenuFrame.Size = UDim2.new(0, 560, 0, 460) -- Немного расширили под превью-модельку!
+    MenuFrame.Size = UDim2.new(0, 560, 0, 460)
     MenuFrame.Position = UDim2.new(0.3, 0, 0.25, 0)
     MenuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     MenuFrame.BorderSizePixel = 2
@@ -21,6 +22,7 @@ function UI.Init(Config, FriendsList)
     MenuFrame.Active = true
     MenuFrame.Draggable = true
     MenuFrame.Visible = Config.MenuOpen
+    MenuFrame.ZIndex = 2
     MenuFrame.Parent = ScreenGui
 
     local Title = Instance.new("TextLabel")
@@ -31,15 +33,17 @@ function UI.Init(Config, FriendsList)
     Title.TextXAlignment = Enum.TextXAlignment.Left
     Title.Font = Enum.Font.Code
     Title.TextSize = 14
+    Title.ZIndex = 3
     Title.Parent = MenuFrame
 
     local ToggleContainer = Instance.new("Frame")
     ToggleContainer.Size = UDim2.new(0, 200, 1, -45)
     ToggleContainer.Position = UDim2.new(0, 10, 0, 40)
     ToggleContainer.BackgroundTransparency = 1
+    ToggleContainer.ZIndex = 3
     ToggleContainer.Parent = MenuFrame
 
-    -- Функция создания подменю
+    -- Исправленная функция создания подменю
     local function CreateSubMenu(sizeY, parent)
         local Frame = Instance.new("Frame")
         Frame.Size = UDim2.new(0, 180, 0, sizeY)
@@ -47,12 +51,12 @@ function UI.Init(Config, FriendsList)
         Frame.BorderSizePixel = 1
         Frame.BorderColor3 = Color3.fromRGB(60, 60, 60)
         Frame.Visible = false
-        Frame.ZIndex = 10
+        Frame.ZIndex = 15 -- Высокий ZIndex для подменю
         Frame.Parent = parent
         return Frame
     end
 
-    local ESPSub = CreateSubMenu(130, MenuFrame) -- Подменю для ESP
+    local ESPSub = CreateSubMenu(130, MenuFrame)
     local FullbrightSub = CreateSubMenu(40, MenuFrame)
     local StorageSub = CreateSubMenu(100, MenuFrame)
 
@@ -62,11 +66,13 @@ function UI.Init(Config, FriendsList)
     SliderBtn.Position = UDim2.new(0.05, 0, 0.5, -7)
     SliderBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     SliderBtn.Text = ""
+    SliderBtn.ZIndex = 16
     SliderBtn.Parent = FullbrightSub
 
     local SliderFill = Instance.new("Frame")
     SliderFill.Size = UDim2.new(0.6, 0, 1, 0)
     SliderFill.BackgroundColor3 = Color3.fromRGB(45, 120, 45)
+    SliderFill.ZIndex = 17
     SliderFill.Parent = SliderBtn
 
     local SliderTitle = Instance.new("TextLabel")
@@ -75,6 +81,7 @@ function UI.Init(Config, FriendsList)
     SliderTitle.Text = "GAMMA: 160"
     SliderTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
     SliderTitle.Font = Enum.Font.Code
+    SliderTitle.ZIndex = 17
     SliderTitle.Parent = FullbrightSub
 
     local sliding = false
@@ -83,15 +90,17 @@ function UI.Init(Config, FriendsList)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then sliding = false end
     end)
 
-    -- Быстрая функция создания суб-переключателей
+    -- Исправленная функция создания суб-переключателей (с ZIndex!)
     local function CreateSubToggle(name, yPos, configKey, parent, onChange)
         local SBtn = Instance.new("TextButton")
         SBtn.Size = UDim2.new(0.9, 0, 0, 24)
         SBtn.Position = UDim2.new(0.05, 0, 0, yPos)
         SBtn.BackgroundColor3 = Config[configKey] and Color3.fromRGB(45, 120, 45) or Color3.fromRGB(40, 40, 40)
         SBtn.Text = name .. (Config[configKey] and " [ON]" or " [OFF]")
-        SBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+        SBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
         SBtn.Font = Enum.Font.Code
+        SBtn.TextSize = 11
+        SBtn.ZIndex = parent.ZIndex + 1 -- Гарантированно выше подменю!
         SBtn.Parent = parent
 
         SBtn.MouseButton1Click:Connect(function()
@@ -110,7 +119,6 @@ function UI.Init(Config, FriendsList)
     local isBindingFreecam = false
     local isBindingTrigger = false
 
-    -- Наполнение ESP суб-меню
     local updatePreview -- Объявим ниже
     CreateSubToggle("Show Boxes", 5, "ESP_Boxes", ESPSub, function() updatePreview() end)
     CreateSubToggle("Show Names", 35, "ShowNames", ESPSub, function() updatePreview() end)
@@ -122,6 +130,7 @@ function UI.Init(Config, FriendsList)
         Frame.Size = UDim2.new(1, 0, 0, 26)
         Frame.Position = UDim2.new(0, 0, 0, yPos)
         Frame.BackgroundTransparency = 1
+        Frame.ZIndex = 3
         Frame.Parent = ToggleContainer
 
         local isKeybindField = (configKey == "Freecam_Enabled" or configKey == "Triggerbot_Enabled")
@@ -132,6 +141,7 @@ function UI.Init(Config, FriendsList)
         Button.TextColor3 = Color3.fromRGB(220, 220, 220)
         Button.Font = Enum.Font.Code
         Button.TextSize = 12
+        Button.ZIndex = 4
         Button.Parent = Frame
 
         local BindBtn
@@ -143,6 +153,7 @@ function UI.Init(Config, FriendsList)
             BindBtn.Text = configKey == "Freecam_Enabled" and (Config.Freecam_Bind and Config.Freecam_Bind.Name or "...") or (Config.Triggerbot_Bind and Config.Triggerbot_Bind.Name or "...")
             BindBtn.TextColor3 = Color3.fromRGB(255, 200, 0)
             BindBtn.Font = Enum.Font.Code
+            BindBtn.ZIndex = 4
             BindBtn.Parent = Frame
             
             BindBtn.MouseButton1Click:Connect(function()
@@ -151,15 +162,13 @@ function UI.Init(Config, FriendsList)
             end)
         end
 
-        -- ЛКМ клик
         Button.MouseButton1Click:Connect(function()
             Config[configKey] = not Config[configKey]
             Button.BackgroundColor3 = Config[configKey] and Color3.fromRGB(45, 120, 45) or Color3.fromRGB(35, 35, 35)
             Button.Text = name .. (Config[configKey] and " [ON]" or " [OFF]")
-            if onChange then onChange() end
+            updatePreview()
         end)
 
-        -- ПКМ клик для открытия суб-меню
         Button.MouseButton2Click:Connect(function()
             ESPSub.Visible = false
             StorageSub.Visible = false
@@ -177,7 +186,6 @@ function UI.Init(Config, FriendsList)
             end
         end)
 
-        -- Бинды клавиш
         UserInputService.InputBegan:Connect(function(input, processed)
             if isBindingFreecam and configKey == "Freecam_Enabled" then
                 if input.UserInputType == Enum.UserInputType.Keyboard then
@@ -193,7 +201,6 @@ function UI.Init(Config, FriendsList)
         end)
     end
 
-    -- Наш новый список кнопок (БЕЗ RECOIL)
     CreateToggle("ESP (RMB)", 0, "ESP_Enabled")
     CreateToggle("Enable Chams", 30, "Chams_Enabled")
     CreateToggle("2D Screen Skeletons", 60, "Skeleton_Enabled")
@@ -205,13 +212,14 @@ function UI.Init(Config, FriendsList)
     CreateToggle("Infinite Stamina", 240, "InfStamina_Enabled")
     CreateToggle("Auto Bhop", 270, "Bhop_Enabled")
 
-    -- СТИЛЬНАЯ 3D VIEWPORT PREVIEW ПАНЕЛЬ (В стиле CS/Roblox)
+    -- СТИЛЬНАЯ 3D VIEWPORT PREVIEW ПАНЕЛЬ
     local PreviewContainer = Instance.new("Frame")
     PreviewContainer.Size = UDim2.new(0, 180, 0, 240)
     PreviewContainer.Position = UDim2.new(0, 220, 0, 40)
     PreviewContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     PreviewContainer.BorderSizePixel = 1
     PreviewContainer.BorderColor3 = Color3.fromRGB(40, 40, 40)
+    PreviewContainer.ZIndex = 3
     PreviewContainer.Parent = MenuFrame
 
     local PreviewTitle = Instance.new("TextLabel")
@@ -220,12 +228,14 @@ function UI.Init(Config, FriendsList)
     PreviewTitle.Text = "ESP PREVIEW"
     PreviewTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
     PreviewTitle.Font = Enum.Font.Code
+    PreviewTitle.ZIndex = 4
     PreviewTitle.Parent = PreviewContainer
 
     local Viewport = Instance.new("ViewportFrame")
     Viewport.Size = UDim2.new(1, 0, 1, -25)
     Viewport.Position = UDim2.new(0, 0, 0, 25)
     Viewport.BackgroundTransparency = 1
+    Viewport.ZIndex = 4
     Viewport.Parent = PreviewContainer
 
     -- Создаем роблокс-персонажа для превью
@@ -256,6 +266,7 @@ function UI.Init(Config, FriendsList)
     PreviewBox.BackgroundTransparency = 1
     PreviewBox.BorderColor3 = Color3.fromRGB(0, 255, 100)
     PreviewBox.BorderSizePixel = 1
+    PreviewBox.ZIndex = 5 -- Выше вьюпорта!
     PreviewBox.Visible = false
     PreviewBox.Parent = Viewport
 
@@ -267,6 +278,7 @@ function UI.Init(Config, FriendsList)
     PreviewName.TextColor3 = Color3.fromRGB(0, 255, 100)
     PreviewName.Font = Enum.Font.Code
     PreviewName.TextSize = 10
+    PreviewName.ZIndex = 6
     PreviewName.Visible = false
     PreviewName.Parent = PreviewBox
 
@@ -275,6 +287,7 @@ function UI.Init(Config, FriendsList)
     PreviewHealth.Position = UDim2.new(-0.08, 0, 0, 0)
     PreviewHealth.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
     PreviewHealth.BorderSizePixel = 0
+    PreviewHealth.ZIndex = 6
     PreviewHealth.Visible = false
     PreviewHealth.Parent = PreviewBox
 
@@ -286,6 +299,7 @@ function UI.Init(Config, FriendsList)
     PreviewWeapon.TextColor3 = Color3.fromRGB(255, 255, 255)
     PreviewWeapon.Font = Enum.Font.Code
     PreviewWeapon.TextSize = 10
+    PreviewWeapon.ZIndex = 6
     PreviewWeapon.Visible = false
     PreviewWeapon.Parent = PreviewBox
 
@@ -303,13 +317,14 @@ function UI.Init(Config, FriendsList)
     end
     updatePreview()
 
-    -- Friend Panel Setup (Сдвинули вправо, чтобы влезло превью!)
+    -- Friend Panel Setup
     local FriendContainer = Instance.new("Frame")
     FriendContainer.Size = UDim2.new(0, 140, 1, -45)
     FriendContainer.Position = UDim2.new(0, 410, 0, 40)
     FriendContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     FriendContainer.BorderSizePixel = 1
     FriendContainer.BorderColor3 = Color3.fromRGB(40, 40, 40)
+    FriendContainer.ZIndex = 3
     FriendContainer.Parent = MenuFrame
 
     local FriendTitle = Instance.new("TextLabel")
@@ -318,6 +333,7 @@ function UI.Init(Config, FriendsList)
     FriendTitle.Text = "FRIENDS"
     FriendTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
     FriendTitle.Font = Enum.Font.Code
+    FriendTitle.ZIndex = 4
     FriendTitle.Parent = FriendContainer
 
     local PlayerScroller = Instance.new("ScrollingFrame")
@@ -325,6 +341,7 @@ function UI.Init(Config, FriendsList)
     PlayerScroller.Position = UDim2.new(0, 5, 0, 30)
     PlayerScroller.BackgroundTransparency = 1
     PlayerScroller.ScrollBarThickness = 4
+    PlayerScroller.ZIndex = 4
     PlayerScroller.Parent = FriendContainer
 
     local UIList = Instance.new("UIListLayout")
@@ -340,6 +357,8 @@ function UI.Init(Config, FriendsList)
                 local PButton = Instance.new("TextButton")
                 PButton.Size = UDim2.new(1, -5, 0, 20)
                 PButton.Font = Enum.Font.Code
+                PButton.TextSize = 10
+                PButton.ZIndex = 5
                 if FriendsList[p.Name] then PButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0) PButton.Text = p.Name .. " [FR]" else PButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40) PButton.Text = p.Name end
                 PButton.TextColor3 = Color3.fromRGB(255,255,255) PButton.Parent = PlayerScroller
                 PButton.MouseButton1Click:Connect(function() FriendsList[p.Name] = not FriendsList[p.Name] UpdateFriendMenu() end)
