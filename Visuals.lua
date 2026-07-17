@@ -1,18 +1,13 @@
 local Visuals = {}
-local Players = game:GetService("Players")
-local Lighting = game:GetService("Lighting")
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-
 local PlayerVisuals = {}
 local StorageVisuals = {}
 local UILinesFolder
 
-local OriginalAmbient = Lighting.Ambient
-local OriginalOutdoorAmbient = Lighting.OutdoorAmbient
-
 function Visuals.Init(Config, ChamsConfig, FriendsList)
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
     local sg = LocalPlayer:WaitForChild("PlayerGui")
+    
     UILinesFolder = Instance.new("Folder")
     UILinesFolder.Name = "Grimoire_Skeletons"
     UILinesFolder.Parent = sg:FindFirstChild("Grimoire_Godmode_v15") or sg
@@ -160,14 +155,20 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
 end
 
 function Visuals.Update(Config, ChamsConfig, FriendsList)
+    local Lighting = game:GetService("Lighting")
+    local Camera = workspace.CurrentCamera
+    
+    if not _G.OriginalAmbient then _G.OriginalAmbient = Lighting.Ambient end
+    if not _G.OriginalOutdoorAmbient then _G.OriginalOutdoorAmbient = Lighting.OutdoorAmbient end
+
     -- Настройка Fullbright
     if Config.Fullbright_Enabled then
         local g = Config.Fullbright_Gamma
         Lighting.Ambient = Color3.fromRGB(g, g, g)
         Lighting.OutdoorAmbient = Color3.fromRGB(g, g, g)
     else
-        Lighting.Ambient = OriginalAmbient
-        Lighting.OutdoorAmbient = OriginalOutdoorAmbient
+        Lighting.Ambient = _G.OriginalAmbient
+        Lighting.OutdoorAmbient = _G.OriginalOutdoorAmbient
     end
 
     -- Обновление игроков
