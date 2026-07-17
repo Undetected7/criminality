@@ -5,14 +5,12 @@ function Features.Update(Config, FriendsList, char, hrp, hum)
     local UserInputService = game:GetService("UserInputService")
     local LocalPlayer = Players.LocalPlayer
     local Camera = workspace.CurrentCamera
-    local Mouse = LocalPlayer:GetMouse()
 
-    -- Инициализируем переменные движения
     if not _G.fcCFrame then _G.fcCFrame = Camera.CFrame end
     if not _G.rotX then _G.rotX = 0 end
     if not _G.rotY then _G.rotY = 0 end
 
-    -- 1. Исправленный Freecam
+    -- 1. Freecam Engine
     if Config.Freecam_Enabled then
         Camera.CameraType = Enum.CameraType.Scriptable
         if hrp and not hrp.Anchored then hrp.Anchored = true end
@@ -41,45 +39,36 @@ function Features.Update(Config, FriendsList, char, hrp, hum)
         end
     end
 
-    -- 2. Triggerbot (ИСПРАВЛЕННЫЙ)
-    if Config.Triggerbot_Enabled and Config.ESP_Enabled then
-        local target = Mouse.Target
-        if target and target.Parent then
-            local targetChar = target.Parent:IsA("Model") and target.Parent or target.Parent.Parent
-            local targetHum = targetChar and targetChar:FindFirstChildOfClass("Humanoid")
-            if targetHum and targetHum.Health > 0 then
-                local tPlayer = Players:GetPlayerFromCharacter(targetChar)
-                if tPlayer and tPlayer ~= LocalPlayer and not FriendsList[tPlayer.Name] then
-                    if UserInputService:IsKeyDown(Config.Triggerbot_Bind) then
-                        mouse1click()
-                    end
+    -- 2. No Fall Damage
+    if Config.NoFall_Enabled and hrp then
+        if hrp.Velocity.Y < -30 then
+            hrp.Velocity = Vector3.new(hrp.Velocity.X, -2, hrp.Velocity.Z)
+        end
+    end
+
+    -- 3. Infinite Stamina
+    if Config.InfStamina_Enabled and char then
+        local staminaValue = char:FindFirstChild("Stamina") or char:FindFirstChild("Energy") or LocalPlayer:FindFirstChild("Stamina")
+        if staminaValue and staminaValue:IsA("ValueBase") then 
+            staminaValue.Value = 100 
+        end
+        pcall(function()
+            local runScript = char:FindFirstChild("Animate") or char:FindFirstChild("Movement")
+            if runScript then
+                local staminaMod = runScript:FindFirstChild("Stamina") or runScript:FindFirstChild("Sprint")
+                if staminaMod and staminaMod:IsA("ValueBase") then
+                    staminaMod.Value = 100
                 end
             end
-        end
+        end)
     end
 
-    -- 3. No Fall Damage (ИСПРАВЛЕННЫЙ)
-    if Config.NoFall_Enabled and hrp then
-        if hrp.Velocity.Y < -35 then
-            hrp.Velocity = Vector3.new(hrp.Velocity.X, -5, hrp.Velocity.Z) -- Плавно гасим скорость вместо резкого нуля
-        end
-    end
-
-    -- 4. Infinite Stamina (ИСПРАВЛЕННЫЙ)
-    if Config.InfStamina_Enabled and char then
-        -- Находим скрытые значения стамины в Criminality (они часто лежат в Character или PlayerGui)
-        local stamina = char:FindFirstChild("Stamina") or char:FindFirstChild("Energy") or LocalPlayer:FindFirstChild("Stamina")
-        if stamina and stamina:IsA("ValueBase") then 
-            stamina.Value = 100 
-        end
-    end
-
-    -- 5. Auto Bhop (ИСПРАВЛЕННЫЙ)
+    -- 4. Auto Bhop
     if Config.Bhop_Enabled and hum and hrp then
         if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
             if hum.FloorMaterial ~= Enum.Material.Air then
                 hum.Jump = true
-                task.wait(0.01) -- Микро-задержка для обхода анти-спама прыжков
+                task.wait(0.02)
             end
         end
     end
