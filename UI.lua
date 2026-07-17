@@ -223,7 +223,7 @@ function UI.Init(Config, FriendsList)
     CreateToggle("Infinite Stamina", 210, "InfStamina_Enabled")
     CreateToggle("Auto Bhop", 240, "Bhop_Enabled")
 
-    -- 3D VIEWPORT PREVIEW PANEL (WITH R6 BLOCKS DUMMY!)
+    -- PREVIEW FRAME С ФИКСОМ ЧАМСОВ ЧЕРЕЗ ЦВЕТ ТЕЛА!
     local PreviewContainer = Instance.new("Frame")
     PreviewContainer.Size = UDim2.new(0, 180, 0, 240)
     PreviewContainer.Position = UDim2.new(0, 220, 0, 40)
@@ -249,40 +249,39 @@ function UI.Init(Config, FriendsList)
     Viewport.ZIndex = 4
     Viewport.Parent = PreviewContainer
 
-    -- R6 Model
     local PreviewModel = Instance.new("Model")
     PreviewModel.Name = "R6_Dummy"
     PreviewModel.Parent = Viewport
 
-    local function CreatePart(name, size, pos, color)
+    local partsList = {}
+    local function CreatePart(name, size, pos)
         local p = Instance.new("Part")
         p.Name = name
         p.Size = size
         p.Position = pos
-        p.Color = color
+        p.Color = Color3.fromRGB(150, 150, 150)
         p.Material = Enum.Material.SmoothPlastic
         p.Anchored = true
         p.CanCollide = false
         p.Parent = PreviewModel
+        table.insert(partsList, p)
         return p
     end
 
-    local dummyColor = Color3.fromRGB(150, 150, 150)
-    local Torso = CreatePart("Torso", Vector3.new(2, 2, 1), Vector3.new(0, 0, 0), dummyColor)
+    local Torso = CreatePart("Torso", Vector3.new(2, 2, 1), Vector3.new(0, 0, 0))
     PreviewModel.PrimaryPart = Torso
+    CreatePart("Head", Vector3.new(1.2, 1.2, 1.2), Vector3.new(0, 1.5, 0))
+    CreatePart("Left Arm", Vector3.new(1, 2, 1), Vector3.new(-1.5, 0, 0))
+    CreatePart("Right Arm", Vector3.new(1, 2, 1), Vector3.new(1.5, 0, 0))
+    CreatePart("Left Leg", Vector3.new(1, 2, 1), Vector3.new(-0.5, -2, 0))
+    CreatePart("Right Leg", Vector3.new(1, 2, 1), Vector3.new(0.5, -2, 0))
 
-    local Head = CreatePart("Head", Vector3.new(1.2, 1.2, 1.2), Vector3.new(0, 1.5, 0), dummyColor)
-    local LeftArm = CreatePart("Left Arm", Vector3.new(1, 2, 1), Vector3.new(-1.5, 0, 0), dummyColor)
-    local RightArm = CreatePart("Right Arm", Vector3.new(1, 2, 1), Vector3.new(1.5, 0, 0), dummyColor)
-    local LeftLeg = CreatePart("Left Leg", Vector3.new(1, 2, 1), Vector3.new(-0.5, -2, 0), dummyColor)
-    local RightLeg = CreatePart("Right Leg", Vector3.new(1, 2, 1), Vector3.new(0.5, -2, 0), dummyColor)
-
-    -- Viewport Overlay
+    -- Viewport 2D Overlay
     local PreviewBox = Instance.new("Frame")
     PreviewBox.Size = UDim2.new(0.65, 0, 0.85, 0)
     PreviewBox.Position = UDim2.new(0.175, 0, 0.05, 0)
     PreviewBox.BackgroundTransparency = 1
-    PreviewBox.BorderColor3 = Color3.fromRGB(0, 255, 100)
+    PreviewBox.BorderColor3 = Color3.fromRGB(255, 0, 128)
     PreviewBox.BorderSizePixel = 1
     PreviewBox.ZIndex = 5
     PreviewBox.Visible = false
@@ -293,7 +292,7 @@ function UI.Init(Config, FriendsList)
     PreviewName.Position = UDim2.new(0, 0, -0.08, 0)
     PreviewName.BackgroundTransparency = 1
     PreviewName.Text = "Player_Dummy (100HP)"
-    PreviewName.TextColor3 = Color3.fromRGB(0, 255, 100)
+    PreviewName.TextColor3 = Color3.fromRGB(255, 0, 128)
     PreviewName.Font = Enum.Font.Code
     PreviewName.TextSize = 10
     PreviewName.ZIndex = 6
@@ -313,8 +312,8 @@ function UI.Init(Config, FriendsList)
     PreviewWeapon.Size = UDim2.new(1, 0, 0, 15)
     PreviewWeapon.Position = UDim2.new(0, 0, 1.02, 0)
     PreviewWeapon.BackgroundTransparency = 1
-    PreviewWeapon.Text = "[Deagle]"
-    PreviewWeapon.TextColor3 = Color3.fromRGB(255, 255, 255)
+    PreviewWeapon.Text = "[AK-47]"
+    PreviewWeapon.TextColor3 = Color3.fromRGB(255, 220, 100)
     PreviewWeapon.Font = Enum.Font.Code
     PreviewWeapon.TextSize = 10
     PreviewWeapon.ZIndex = 6
@@ -331,10 +330,18 @@ function UI.Init(Config, FriendsList)
         PreviewName.Visible = Config.ESP_Enabled and Config.ShowNames
         PreviewHealth.Visible = Config.ESP_Enabled and Config.ShowHP
         PreviewWeapon.Visible = Config.ESP_Enabled and Config.ShowWeapon
+        
+        -- Фикс чамсов: если они включены, красим Dummy в неоновый цвет!
+        local currentColor = (Config.Chams_Enabled) and Color3.fromRGB(255, 0, 128) or Color3.fromRGB(150, 150, 150)
+        local currentMat = (Config.Chams_Enabled) and Enum.Material.Neon or Enum.Material.SmoothPlastic
+        for _, part in ipairs(partsList) do
+            part.Color = currentColor
+            part.Material = currentMat
+        end
     end
     updatePreview()
 
-    -- Friend Panel
+    -- Friends List
     local FriendContainer = Instance.new("Frame")
     FriendContainer.Size = UDim2.new(0, 140, 1, -45)
     FriendContainer.Position = UDim2.new(0, 410, 0, 40)
@@ -388,11 +395,7 @@ function UI.Init(Config, FriendsList)
         if input.KeyCode == Enum.KeyCode.Insert then
             Config.MenuOpen = not Config.MenuOpen
             MenuFrame.Visible = Config.MenuOpen
-            if not Config.MenuOpen then 
-                CloseAllSubMenus()
-            else 
-                UpdateFriendMenu() 
-            end
+            if not Config.MenuOpen then CloseAllSubMenus() else UpdateFriendMenu() end
         end
     end)
 
