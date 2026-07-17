@@ -1,5 +1,5 @@
 -- =========================================================================
---                     GRIMOIRE.CC // BY UNDETECTED (V17)
+--                     GRIMOIRE.CC // CONFIG MODULE (V17)
 -- =========================================================================
 local Color3 = Color3 or _G.Color3 or game:GetService("Players").LocalPlayer.Character and Color3
 local Enum = Enum or _G.Enum
@@ -13,12 +13,12 @@ local Config = {
     ShowWeapon = false,
     
     Chams_Enabled = false,
-    Chams_Hue = 0, -- Значение от 0 до 1 для радужного ползунка цвета!
+    Chams_Hue = 0,
     Skeleton_Enabled = false,
     Fullbright_Enabled = false,
     Fullbright_Gamma = 160,
     Ambient_Custom = false,
-    NoPostProcessing = false, -- Новое!
+    NoPostProcessing = false,
     
     Storage_Enabled = false,
     Storage_Safes = true,
@@ -30,9 +30,13 @@ local Config = {
     Freecam_Speed = 1.2,
     
     Camera_Override = false,
-    Camera_Bind = typeof(Enum) ~= "nil" and Enum.KeyCode.G or nil, -- Новое! Бинд на 3 лицо
+    Camera_Bind = typeof(Enum) ~= "nil" and Enum.KeyCode.G or nil,
     Camera_FOV = 90,
-    Camera_Dist = 12
+    Camera_Dist = 12,
+    
+    FlyHack_Enabled = false, -- Новое!
+    FlyHack_Bind = typeof(Enum) ~= "nil" and Enum.KeyCode.H or nil, -- Бинд на полёт
+    FlyHack_Speed = 1.5,
 }
 
 local ChamsConfig = {
