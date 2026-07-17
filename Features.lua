@@ -1,30 +1,9 @@
 local Features = {}
 
--- Асинхронные жесткие потоки для обхода Crim (Запускаются один раз)
 if _G.LoopsHooked == nil then
     _G.LoopsHooked = true
     
-    -- Цикл Infinite Stamina (Постоянно обнуляем веса и фризим стамину на клиенте)
-    task.spawn(function()
-        local Players = game:GetService("Players")
-        local LocalPlayer = Players.LocalPlayer
-        while true do
-            task.wait(0.1)
-            local char = LocalPlayer.Character
-            if char and _G.GrimoireConfig and _G.GrimoireConfig.InfStamina_Enabled then
-                local st = char:FindFirstChild("Stamina") or LocalPlayer:FindFirstChild("Stamina")
-                if st then st.Value = 100 end
-                
-                local attr = char:FindFirstChild("Attributes") or LocalPlayer:FindFirstChild("Attributes")
-                if attr then
-                    local w = attr:FindFirstChild("Weight") or attr:FindFirstChild("EquippedWeight")
-                    if w then w.Value = 0 end
-                end
-            end
-        end
-    end)
-
-    -- Цикл No Fall Damage (Ловим вектор критического падения)
+    -- Цикл перехвата и обхода триггеров высоты
     task.spawn(function()
         local Players = game:GetService("Players")
         local LocalPlayer = Players.LocalPlayer
@@ -33,11 +12,9 @@ if _G.LoopsHooked == nil then
             local char = LocalPlayer.Character
             local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
             if hrp and _G.GrimoireConfig and _G.GrimoireConfig.NoFall_Enabled then
-                if hrp.Velocity.Y < -32 then
-                    -- Создаем микро-сдвиг позиции вверх для сброса серверного счетчика высоты
-                    hrp.CFrame = hrp.CFrame * CFrame.new(0, 1.5, 0)
-                    hrp.Velocity = Vector3.new(hrp.Velocity.X, -4, hrp.Velocity.Z)
-                    task.wait(0.05)
+                -- Безопасный перехват вектора критического ускорения для снижения урона
+                if hrp.Velocity.Y < -35 then
+                    hrp.Velocity = Vector3.new(hrp.Velocity.X, -5, hrp.Velocity.Z)
                 end
             end
         end
@@ -47,11 +24,21 @@ end
 function Features.Update(Config, FriendsList, char, hrp, hum)
     local Camera = workspace.CurrentCamera
     local UserInputService = game:GetService("UserInputService")
-
-    -- Синхронизируем глобальный конфиг для асинхронных циклов
     _G.GrimoireConfig = Config
 
-    -- Freecam Engine
+    -- Умное переопределение камеры от 3-го лица
+    if Config.Camera_Override and not Config.Freecam_Enabled then
+        Camera.FieldOfView = Config.Camera_FOV
+        pcall(function()
+            local LocalPlayer = game:GetService("Players").LocalPlayer
+            if LocalPlayer then
+                LocalPlayer.CameraMaxZoomDistance = Config.Camera_Dist
+                LocalPlayer.CameraMinZoomDistance = 5
+            end
+        end)
+    end
+
+    -- Стандартный Freecam движок
     if Config.Freecam_Enabled then
         Camera.CameraType = Enum.CameraType.Scriptable
         if hrp and not hrp.Anchored then hrp.Anchored = true end
