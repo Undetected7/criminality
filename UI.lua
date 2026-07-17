@@ -1,10 +1,11 @@
 local UI = {}
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
-local LocalPlayer = Players.LocalPlayer
 
 function UI.Init(Config, FriendsList)
+    local Players = game:GetService("Players")
+    local UserInputService = game:GetService("UserInputService")
+    local CoreGui = game:GetService("CoreGui")
+    local LocalPlayer = Players.LocalPlayer
+
     -- База интерфейса
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "Grimoire_Godmode_v15"
