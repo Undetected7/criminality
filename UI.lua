@@ -7,13 +7,13 @@ function UI.Init(Config, FriendsList)
     local LocalPlayer = Players.LocalPlayer
 
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "Grimoire_Godmode_v15"
+    ScreenGui.Name = "Grimoire_BY_UNDETECTED"
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.Parent = CoreGui
     ScreenGui.ResetOnSpawn = false
 
     local MenuFrame = Instance.new("Frame")
-    MenuFrame.Size = UDim2.new(0, 560, 0, 460)
+    MenuFrame.Size = UDim2.new(0, 560, 0, 430) -- Чуток урезали снизу, убрав бхоп
     MenuFrame.Position = UDim2.new(0.3, 0, 0.25, 0)
     MenuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     MenuFrame.BorderSizePixel = 2
@@ -27,7 +27,7 @@ function UI.Init(Config, FriendsList)
     local Title = Instance.new("TextLabel")
     Title.Size = UDim2.new(1, 0, 0, 35)
     Title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    Title.Text = "  GRIMOIRE.CC // V15 UBER PACK"
+    Title.Text = "  GRIMOIRE.CC // BY UNDETECTED"
     Title.TextColor3 = Color3.fromRGB(255, 255, 255)
     Title.TextXAlignment = Enum.TextXAlignment.Left
     Title.Font = Enum.Font.Code
@@ -195,13 +195,7 @@ function UI.Init(Config, FriendsList)
             if isBindingFreecam and configKey == "Freecam_Enabled" then
                 if input.UserInputType == Enum.UserInputType.Keyboard then
                     isBindingFreecam = false
-                    if input.KeyCode == Enum.KeyCode.Escape then 
-                        Config.Freecam_Bind = nil 
-                        BindBtn.Text = "..." 
-                    else 
-                        Config.Freecam_Bind = input.KeyCode 
-                        BindBtn.Text = input.KeyCode.Name 
-                    end
+                    if input.KeyCode == Enum.KeyCode.Escape then Config.Freecam_Bind = nil BindBtn.Text = "..." else Config.Freecam_Bind = input.KeyCode BindBtn.Text = input.KeyCode.Name end
                 end
             elseif Config.Freecam_Bind and input.KeyCode == Config.Freecam_Bind and not processed then
                 if configKey == "Freecam_Enabled" then
@@ -213,6 +207,7 @@ function UI.Init(Config, FriendsList)
         end)
     end
 
+    -- Наш список без Bhop
     CreateToggle("ESP (RMB)", 0, "ESP_Enabled")
     CreateToggle("Enable Chams", 30, "Chams_Enabled")
     CreateToggle("2D Screen Skeletons", 60, "Skeleton_Enabled")
@@ -221,9 +216,8 @@ function UI.Init(Config, FriendsList)
     CreateToggle("Freecam (RMB)", 150, "Freecam_Enabled")
     CreateToggle("No Fall Damage", 180, "NoFall_Enabled")
     CreateToggle("Infinite Stamina", 210, "InfStamina_Enabled")
-    CreateToggle("Auto Bhop", 240, "Bhop_Enabled")
 
-    -- PREVIEW FRAME С ФИКСОМ ЧАМСОВ ЧЕРЕЗ ЦВЕТ ТЕЛА!
+    -- СТИЛЬНАЯ ПАНЕЛЬ С КЛАССИЧЕСКИМ R6 DUMMY
     local PreviewContainer = Instance.new("Frame")
     PreviewContainer.Size = UDim2.new(0, 180, 0, 240)
     PreviewContainer.Position = UDim2.new(0, 220, 0, 40)
@@ -249,6 +243,7 @@ function UI.Init(Config, FriendsList)
     Viewport.ZIndex = 4
     Viewport.Parent = PreviewContainer
 
+    -- Создаем модельку R6
     local PreviewModel = Instance.new("Model")
     PreviewModel.Name = "R6_Dummy"
     PreviewModel.Parent = Viewport
@@ -276,47 +271,48 @@ function UI.Init(Config, FriendsList)
     CreatePart("Left Leg", Vector3.new(1, 2, 1), Vector3.new(-0.5, -2, 0))
     CreatePart("Right Leg", Vector3.new(1, 2, 1), Vector3.new(0.5, -2, 0))
 
-    -- Viewport 2D Overlay
+    -- ФИКС: Рендерим 2D элементы ПОВЕРХ вьюпорта (Внутри контейнера панели!)
     local PreviewBox = Instance.new("Frame")
-    PreviewBox.Size = UDim2.new(0.65, 0, 0.85, 0)
-    PreviewBox.Position = UDim2.new(0.175, 0, 0.05, 0)
+    PreviewBox.Size = UDim2.new(0, 110, 0, 180)
+    PreviewBox.Position = UDim2.new(0.5, -55, 0.5, -80)
     PreviewBox.BackgroundTransparency = 1
     PreviewBox.BorderColor3 = Color3.fromRGB(255, 0, 128)
     PreviewBox.BorderSizePixel = 1
-    PreviewBox.ZIndex = 5
+    PreviewBox.ZIndex = 10 -- Высокий индекс
     PreviewBox.Visible = false
-    PreviewBox.Parent = Viewport
+    PreviewBox.Parent = PreviewContainer
 
     local PreviewName = Instance.new("TextLabel")
     PreviewName.Size = UDim2.new(1, 0, 0, 15)
-    PreviewName.Position = UDim2.new(0, 0, -0.08, 0)
+    PreviewName.Position = UDim2.new(0, 0, 0, -18)
     PreviewName.BackgroundTransparency = 1
     PreviewName.Text = "Player_Dummy (100HP)"
     PreviewName.TextColor3 = Color3.fromRGB(255, 0, 128)
     PreviewName.Font = Enum.Font.Code
     PreviewName.TextSize = 10
-    PreviewName.ZIndex = 6
+    PreviewName.ZIndex = 11
     PreviewName.Visible = false
     PreviewName.Parent = PreviewBox
 
     local PreviewHealth = Instance.new("Frame")
     PreviewHealth.Size = UDim2.new(0, 3, 1, 0)
-    PreviewHealth.Position = UDim2.new(-0.08, 0, 0, 0)
+    PreviewHealth.Position = UDim2.new(0, -6, 0, 0)
     PreviewHealth.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
     PreviewHealth.BorderSizePixel = 0
-    PreviewHealth.ZIndex = 6
+    PreviewHealth.ZIndex = 11
     PreviewHealth.Visible = false
     PreviewHealth.Parent = PreviewBox
 
+    -- ФИКС: Оружие строго ВНИЗУ коробки!
     local PreviewWeapon = Instance.new("TextLabel")
     PreviewWeapon.Size = UDim2.new(1, 0, 0, 15)
-    PreviewWeapon.Position = UDim2.new(0, 0, 1.02, 0)
+    PreviewWeapon.Position = UDim2.new(0, 0, 1, 4)
     PreviewWeapon.BackgroundTransparency = 1
     PreviewWeapon.Text = "[AK-47]"
     PreviewWeapon.TextColor3 = Color3.fromRGB(255, 220, 100)
     PreviewWeapon.Font = Enum.Font.Code
     PreviewWeapon.TextSize = 10
-    PreviewWeapon.ZIndex = 6
+    PreviewWeapon.ZIndex = 11
     PreviewWeapon.Visible = false
     PreviewWeapon.Parent = PreviewBox
 
@@ -331,7 +327,6 @@ function UI.Init(Config, FriendsList)
         PreviewHealth.Visible = Config.ESP_Enabled and Config.ShowHP
         PreviewWeapon.Visible = Config.ESP_Enabled and Config.ShowWeapon
         
-        -- Фикс чамсов: если они включены, красим Dummy в неоновый цвет!
         local currentColor = (Config.Chams_Enabled) and Color3.fromRGB(255, 0, 128) or Color3.fromRGB(150, 150, 150)
         local currentMat = (Config.Chams_Enabled) and Enum.Material.Neon or Enum.Material.SmoothPlastic
         for _, part in ipairs(partsList) do
@@ -341,7 +336,7 @@ function UI.Init(Config, FriendsList)
     end
     updatePreview()
 
-    -- Friends List
+    -- Friends Menu
     local FriendContainer = Instance.new("Frame")
     FriendContainer.Size = UDim2.new(0, 140, 1, -45)
     FriendContainer.Position = UDim2.new(0, 410, 0, 40)
