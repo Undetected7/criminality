@@ -15,7 +15,6 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
     local function CreatePlayerESP(player)
         if player == LocalPlayer then return end
         
-        -- Billboard для имени и оружия
         local BBGui = Instance.new("BillboardGui")
         BBGui.Size = UDim2.new(0, 200, 0, 50)
         BBGui.StudsOffset = Vector3.new(0, 3.5, 0)
@@ -46,7 +45,7 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
         WeaponLabel.TextSize = 10
         WeaponLabel.Parent = Container
 
-        -- Рамка 2D бокса на экране
+        -- 2D Box Frame
         local BoxFrame = Instance.new("Frame")
         BoxFrame.BackgroundTransparency = 1
         BoxFrame.BorderSizePixel = 1
@@ -54,7 +53,7 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
         BoxFrame.Visible = false
         BoxFrame.Parent = UILinesFolder.Parent
 
-        -- Линия здоровья рядом с боксом
+        -- HP Bar Frame
         local HPBar = Instance.new("Frame")
         HPBar.BorderSizePixel = 0
         HPBar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
@@ -64,14 +63,29 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
         local Highlight = Instance.new("Highlight")
         Highlight.Enabled = false
 
-        local Lines = {}
+        -- Head circle
+        local HeadCircle = Instance.new("Frame")
+        HeadCircle.Size = UDim2.new(0, 12, 0, 12)
+        HeadCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+        HeadCircle.BackgroundColor3 = ChamsConfig.EnemyColor
+        HeadCircle.BorderSizePixel = 0
+        HeadCircle.Visible = false
+        HeadCircle.Parent = UILinesFolder.Parent
+        
+        local Corner = Instance.new("UICorner")
+        Corner.CornerRadius = UDim.new(1, 0)
+        Corner.Parent = HeadCircle
+
+        -- R15 bones
         local bonePairs = {
-            {"Head", "UpperTorso"}, {"UpperTorso", "LowerTorso"},
+            {"UpperTorso", "LowerTorso"},
             {"UpperTorso", "LeftUpperArm"}, {"LeftUpperArm", "LeftLowerArm"},
             {"UpperTorso", "RightUpperArm"}, {"RightUpperArm", "RightLowerArm"},
             {"LowerTorso", "LeftUpperLeg"}, {"LeftUpperLeg", "LeftLowerLeg"},
             {"LowerTorso", "RightUpperLeg"}, {"RightUpperLeg", "RightLowerLeg"}
         }
+        
+        local Lines = {}
         for i = 1, #bonePairs do
             local LFrame = Instance.new("Frame")
             LFrame.BorderSizePixel = 0
@@ -82,6 +96,13 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
             table.insert(Lines, {Frame = LFrame, PartA = bonePairs[i][1], PartB = bonePairs[i][2]})
         end
 
+        local NeckLine = Instance.new("Frame")
+        NeckLine.BorderSizePixel = 0
+        NeckLine.BackgroundColor3 = ChamsConfig.EnemyColor
+        NeckLine.Visible = false
+        NeckLine.AnchorPoint = Vector2.new(0.5, 0)
+        NeckLine.Parent = UILinesFolder
+
         PlayerVisuals[player] = {
             BBGui = BBGui, 
             Name = NameLabel, 
@@ -89,6 +110,8 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
             Box = BoxFrame, 
             HP = HPBar, 
             Chams = Highlight, 
+            HeadCircle = HeadCircle,
+            NeckLine = NeckLine,
             Lines = Lines
         }
     end
@@ -96,7 +119,7 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
     Players.PlayerAdded:Connect(CreatePlayerESP)
     for _, p in pairs(Players:GetPlayers()) do CreatePlayerESP(p) end
 
-    -- Поток сканера ящиков
+    -- Safe Scanner
     local function DeepDistributedStorageScan()
         if not Config.Storage_Enabled or not Config.ESP_Enabled then 
             for obj, objs in pairs(StorageVisuals) do pcall(function() objs.BB:Destroy() objs.High:Destroy() end) StorageVisuals[obj] = nil end
@@ -179,12 +202,13 @@ end
 
 function Visuals.Update(Config, ChamsConfig, FriendsList)
     local Lighting = game:GetService("Lighting")
+    local GuiService = game:GetService("GuiService")
     local Camera = workspace.CurrentCamera
-    
+    local inset = GuiService:GetGuiInset()
+
     if not _G.OriginalAmbient then _G.OriginalAmbient = Lighting.Ambient end
     if not _G.OriginalOutdoorAmbient then _G.OriginalOutdoorAmbient = Lighting.OutdoorAmbient end
 
-    -- Настройка Fullbright
     if Config.Fullbright_Enabled then
         local g = Config.Fullbright_Gamma
         Lighting.Ambient = Color3.fromRGB(g, g, g)
@@ -194,7 +218,6 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
         Lighting.OutdoorAmbient = _G.OriginalOutdoorAmbient
     end
 
-    -- Обновление игроков
     for player, objs in pairs(PlayerVisuals) do
         local pChar = player.Character
         local pHum = pChar and pChar:FindFirstChildOfClass("Humanoid")
@@ -205,16 +228,12 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
             local isFriend = FriendsList[player.Name]
             local targetColor = isFriend and ChamsConfig.FriendColor or ChamsConfig.EnemyColor
             
-            -- Определение оружия в руках игрока
             local currentWeapon = "[Unarmed]"
             if pChar then
                 local tool = pChar:FindFirstChildOfClass("Tool")
-                if tool then
-                    currentWeapon = "[" .. tool.Name .. "]"
-                end
+                if tool then currentWeapon = "[" .. tool.Name .. "]" end
             end
 
-            -- Отрисовка имени и оружия через BillboardGui
             if objs.BBGui.Adornee ~= pHead then objs.BBGui.Adornee = pHead end
             objs.BBGui.Enabled = Config.ShowNames or Config.ShowWeapon
             
@@ -234,27 +253,26 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
                 objs.Weapon.Visible = false
             end
 
-            -- Отрисовка 2D Квадрата (Box) и Полоски здоровья (HP Bar)
-            local headPos, headOnScreen = Camera:WorldToViewportPoint(pHead.Position + Vector3.new(0, 0.5, 0))
+            -- 2D Boxes
+            local headPos, headOnScreen = Camera:WorldToViewportPoint(pHead.Position + Vector3.new(0, 1, 0))
             local legPos, legOnScreen = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
 
             if headOnScreen and legOnScreen and Config.ESP_Boxes then
                 local height = math.abs(headPos.Y - legPos.Y)
-                local width = height / 1.6
+                local width = height / 1.5
 
                 objs.Box.Size = UDim2.new(0, width, 0, height)
-                objs.Box.Position = UDim2.new(0, headPos.X - width/2, 0, headPos.Y)
+                objs.Box.Position = UDim2.new(0, headPos.X - width/2, 0, (headPos.Y - inset.Y))
                 objs.Box.BorderColor3 = targetColor
                 objs.Box.Visible = true
 
-                -- HP Bar с левой стороны коробки
                 if Config.ShowHP then
                     local pct = math.clamp(pHum.Health / pHum.MaxHealth, 0, 1)
                     local hpHeight = height * pct
 
                     objs.HP.Size = UDim2.new(0, 3, 0, hpHeight)
-                    objs.HP.Position = UDim2.new(0, (headPos.X - width/2) - 6, 0, headPos.Y + (height - hpHeight))
-                    objs.HP.BackgroundColor3 = Color3.fromHSV(pct * 0.3, 1, 1) -- Плавный цвет от красного к зеленому
+                    objs.HP.Position = UDim2.new(0, (headPos.X - width/2) - 6, 0, (headPos.Y - inset.Y) + (height - hpHeight))
+                    objs.HP.BackgroundColor3 = Color3.fromHSV(pct * 0.3, 1, 1)
                     objs.HP.Visible = true
                 else
                     objs.HP.Visible = false
@@ -264,7 +282,6 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
                 objs.HP.Visible = false
             end
 
-            -- Чамсы
             if Config.Chams_Enabled then
                 if not objs.Chams.Parent then objs.Chams.Parent = pChar end
                 objs.Chams.FillColor = targetColor objs.Chams.Enabled = true
@@ -272,8 +289,38 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
                 objs.Chams.Enabled = false 
             end
 
-            -- Скелеты
+            -- SKELETON WITH HEAD CIRCLE
             if Config.Skeleton_Enabled then
+                local sHeadPos, headScreen = Camera:WorldToViewportPoint(pHead.Position)
+                if headScreen then
+                    objs.HeadCircle.Position = UDim2.new(0, sHeadPos.X, 0, sHeadPos.Y - inset.Y)
+                    objs.HeadCircle.BackgroundColor3 = targetColor
+                    objs.HeadCircle.Visible = true
+                else
+                    objs.HeadCircle.Visible = false
+                end
+
+                local torsoPart = pChar:FindFirstChild("UpperTorso") or pChar:FindFirstChild("Torso")
+                if torsoPart and headScreen then
+                    local sTorsoPos, torsoScreen = Camera:WorldToViewportPoint(torsoPart.Position)
+                    if torsoScreen then
+                        local startV = Vector2.new(sHeadPos.X, sHeadPos.Y - inset.Y)
+                        local endV = Vector2.new(sTorsoPos.X, sTorsoPos.Y - inset.Y)
+                        local dist = (startV - endV).Magnitude
+                        local angle = math.deg(math.atan2(endV.Y - startV.Y, endV.X - startV.X))
+
+                        objs.NeckLine.Size = UDim2.new(0, 2, 0, dist)
+                        objs.NeckLine.Position = UDim2.new(0, startV.X, 0, startV.Y)
+                        objs.NeckLine.Rotation = angle - 90
+                        objs.NeckLine.BackgroundColor3 = targetColor
+                        objs.NeckLine.Visible = true
+                    else
+                        objs.NeckLine.Visible = false
+                    end
+                else
+                    objs.NeckLine.Visible = false
+                end
+
                 for l = 1, #objs.Lines do
                     local line = objs.Lines[l]
                     local partA = pChar:FindFirstChild(line.PartA)
@@ -284,8 +331,8 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
                         local screenPosB, onScreenB = Camera:WorldToViewportPoint(partB.Position)
                         
                         if onScreenA and onScreenB then
-                            local startV = Vector2.new(screenPosA.X, screenPosA.Y)
-                            local endV = Vector2.new(screenPosB.X, screenPosB.Y)
+                            local startV = Vector2.new(screenPosA.X, screenPosA.Y - inset.Y)
+                            local endV = Vector2.new(screenPosB.X, screenPosB.Y - inset.Y)
                             local dist = (startV - endV).Magnitude
                             local angle = math.deg(math.atan2(endV.Y - startV.Y, endV.X - startV.X))
                             
@@ -298,6 +345,8 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
                     else line.Frame.Visible = false end
                 end
             else
+                objs.HeadCircle.Visible = false
+                objs.NeckLine.Visible = false
                 for l = 1, #objs.Lines do objs.Lines[l].Frame.Visible = false end
             end
         else
@@ -305,11 +354,12 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
             objs.Chams.Enabled = false
             objs.Box.Visible = false
             objs.HP.Visible = false
+            objs.HeadCircle.Visible = false
+            objs.NeckLine.Visible = false
             for l = 1, #objs.Lines do objs.Lines[l].Frame.Visible = false end
         end
     end
 
-    -- Обновление ящиков
     if Config.Storage_Enabled and Config.ESP_Enabled then
         for obj, objs in pairs(StorageVisuals) do
             if obj and obj.Parent and objs.Part and objs.Part.Parent then
