@@ -57,7 +57,7 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     local FullbrightSub = CreateSubMenu(90, MenuFrame)
     local StorageSub = CreateSubMenu(100, MenuFrame)
     local CameraSub = CreateSubMenu(60, MenuFrame)
-    local ChamsSub = CreateSubMenu(50, MenuFrame) -- Подменю для Колорпикера!
+    local ChamsSub = CreateSubMenu(50, MenuFrame)
 
     local function CloseAllSubMenus()
         ESPSub.Visible = false
@@ -91,6 +91,7 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     CreateSubToggle("Filter: Registers", 35, "Storage_Registers", StorageSub)
     CreateSubToggle("Filter: Loose Loot Piles", 65, "Storage_Loot", StorageSub)
 
+    local isBindingFreecam = false
     local updatePreview
 
     CreateSubToggle("Show Boxes", 5, "ESP_Boxes", ESPSub, function() updatePreview() end)
@@ -101,7 +102,7 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     CreateSubToggle("Ambient Color Changer", 5, "Ambient_Custom", FullbrightSub)
     CreateSubToggle("Enable 3rd Person", 5, "Camera_Override", CameraSub)
 
-    -- РЕАЛИЗАЦИЯ КОЛОРПИКЕРА (HUE SLIDER КАК НА КАРТИНКЕ ДЖЕКА!)
+    -- Colour Picker
     local HueBar = Instance.new("TextButton")
     HueBar.Size = UDim2.new(0.9, 0, 0, 15)
     HueBar.Position = UDim2.new(0.05, 0, 0, 25)
@@ -109,11 +110,10 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     HueBar.ZIndex = 16
     HueBar.Parent = ChamsSub
 
-    -- Градиент для радужной полоски цвета
     local UIGradient = Instance.new("UIGradient")
     UIGradient.Color = ColorSequence.new({
         ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-        ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 255, 0)),
+        ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 255, Yellow or 0)),
         ColorSequenceKeypoint.new(0.4, Color3.fromRGB(0, 255, 0)),
         ColorSequenceKeypoint.new(0.6, Color3.fromRGB(0, 255, 255)),
         ColorSequenceKeypoint.new(0.8, Color3.fromRGB(0, 0, 255)),
@@ -123,7 +123,7 @@ function UI.Init(Config, ChamsConfig, FriendsList)
 
     local HuePicker = Instance.new("Frame")
     HuePicker.Size = UDim2.new(0, 6, 1, 4)
-    HuePicker.Position = UDim2.new(Config.Chams_Hue, -3, 0, -2)
+    HuePicker.Position = UDim2.new(Config.Chams_Hue or 0, -3, 0, -2)
     HuePicker.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     HuePicker.BorderSizePixel = 1
     HuePicker.ZIndex = 17
@@ -155,12 +155,11 @@ function UI.Init(Config, ChamsConfig, FriendsList)
             
             HuePicker.Position = UDim2.new(pct, -3, 0, -2)
             Config.Chams_Hue = pct
-            ChamsConfig.EnemyColor = Color3.fromHSV(pct, 1, 1) -- Меняем цвет динамически!
+            ChamsConfig.EnemyColor = Color3.fromHSV(pct, 1, 1)
             updatePreview()
         end
     end)
 
-    -- Главная функция создания кнопок с биндами
     local function CreateToggle(name, yPos, configKey)
         local Frame = Instance.new("Frame")
         Frame.Size = UDim2.new(1, 0, 0, 26)
@@ -224,7 +223,6 @@ function UI.Init(Config, ChamsConfig, FriendsList)
             elseif configKey == "Chams_Enabled" then ChamsSub.Position = UDim2.new(0, 10, 0, yPos + 75) ChamsSub.Visible = not lastState end
         end)
 
-        -- Поток обновления названий биндов на кнопках
         task.spawn(function()
             while true do
                 task.wait(0.5)
@@ -248,7 +246,7 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     CreateToggle("No Post-Processing", 210, "NoPostProcessing")
     CreateToggle("3rd Person (RMB)", 240, "Camera_Override")
 
-    -- ESP PREVIEW CONTAINER
+    -- ESP PREVIEW
     local PreviewContainer = Instance.new("Frame")
     PreviewContainer.Size = UDim2.new(0, 180, 0, 240)
     PreviewContainer.Position = UDim2.new(0, 220, 0, 40)
@@ -301,7 +299,6 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     CreatePart("Left Leg", Vector3.new(1, 2, 1), Vector3.new(-0.5, -2, 0))
     CreatePart("Right Leg", Vector3.new(1, 2, 1), Vector3.new(0.5, -2, 0))
 
-    -- ОВЕРЛЕЙ БОКСА РЕНДЕРИТСЯ СТРОГО ПОВЕРХ ВЬЮПОРТА
     local PreviewBox = Instance.new("Frame")
     PreviewBox.Size = UDim2.new(0, 110, 0, 180)
     PreviewBox.Position = UDim2.new(0.5, -55, 0.5, -80)
@@ -367,7 +364,7 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     _G.UpdateMenuPreviewFunc = updatePreview
     updatePreview()
 
-    -- Friends list Setup
+    -- ИСПРАВЛЕННЫЙ FRIENDS PANEL (БЕЗВЫЛЕТНЫЙ!)
     local FriendContainer = Instance.new("Frame")
     FriendContainer.Size = UDim2.new(0, 140, 1, -45)
     FriendContainer.Position = UDim2.new(0, 410, 0, 40)
@@ -401,17 +398,38 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     local function UpdateFriendMenu()
         for _, child in pairs(PlayerScroller:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
         local totalHeight = 0
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer then
-                totalHeight = totalHeight + 24
-                local PButton = Instance.new("TextButton")
-                PButton.Size = UDim2.new(1, -5, 0, 20)
-                PButton.Font = Enum.Font.Code
-                PButton.TextSize = 10
-                PButton.ZIndex = 5
-                if FriendsList[p.Name] then PButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0) PButton.Text = p.Name .. " [FR]" else PButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40) PButton.Text = p.Name end
-                PButton.TextColor3 = Color3.fromRGB(255,255,255) PButton.Parent = PlayerScroller
-                PButton.MouseButton1Click:Connect(function() FriendsList[p.Name] = not FriendsList[p.Name] UpdateFriendMenu() end)
+        
+        -- Жёсткий фикс: проверяем, что массив игроков существует и не пустой!
+        local currentPlayers = Players:GetPlayers()
+        if currentPlayers then
+            for i = 1, #currentPlayers do
+                local p = currentPlayers[i]
+                -- Проверяем существование самого объекта игрока и его имени (Защита от Nil!)
+                if p and p ~= LocalPlayer and p.Name then
+                    totalHeight = totalHeight + 24
+                    local PButton = Instance.new("TextButton")
+                    PButton.Size = UDim2.new(1, -5, 0, 20)
+                    PButton.Font = Enum.Font.Code
+                    PButton.TextSize = 10
+                    PButton.ZIndex = 5
+                    
+                    if FriendsList[p.Name] then 
+                        PButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0) 
+                        PButton.Text = p.Name .. " [FR]" 
+                    else 
+                        PButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40) 
+                        PButton.Text = p.Name 
+                    end
+                    
+                    PButton.TextColor3 = Color3.fromRGB(255,255,255) 
+                    PButton.Parent = PlayerScroller
+                    PButton.MouseButton1Click:Connect(function() 
+                        if p and p.Name then
+                            FriendsList[p.Name] = not FriendsList[p.Name] 
+                            UpdateFriendMenu() 
+                        end
+                    end)
+                end
             end
         end
         PlayerScroller.CanvasSize = UDim2.new(0, 0, 0, totalHeight + 10)
