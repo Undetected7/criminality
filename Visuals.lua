@@ -1,6 +1,6 @@
 local Visuals = {}
-local Players = game:Service("Players")
-local Lighting = game:Service("Lighting")
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
@@ -12,8 +12,7 @@ local OriginalAmbient = Lighting.Ambient
 local OriginalOutdoorAmbient = Lighting.OutdoorAmbient
 
 function Visuals.Init(Config, ChamsConfig, FriendsList)
-    -- Папка для хранения 2D-линий скелетов в CoreGui, чтобы не засорять воркспейс
-    local sg = LocalPlayer:WaitForChild("PlayerGui") -- или CoreGui в Loader
+    local sg = LocalPlayer:WaitForChild("PlayerGui")
     UILinesFolder = Instance.new("Folder")
     UILinesFolder.Name = "Grimoire_Skeletons"
     UILinesFolder.Parent = sg:FindFirstChild("Grimoire_Godmode_v15") or sg
