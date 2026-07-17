@@ -10,7 +10,7 @@ function Features.Update(Config, FriendsList, char, hrp, hum)
     if not _G.rotX then _G.rotX = 0 end
     if not _G.rotY then _G.rotY = 0 end
 
-    -- 1. Freecam Engine
+    -- 1. Freecam
     if Config.Freecam_Enabled then
         Camera.CameraType = Enum.CameraType.Scriptable
         if hrp and not hrp.Anchored then hrp.Anchored = true end
@@ -39,26 +39,28 @@ function Features.Update(Config, FriendsList, char, hrp, hum)
         end
     end
 
-    -- 2. No Fall Damage
+    -- 2. HARD CRIMINALITY BYPASS: No Fall Damage (Клиентский брейкер высоты)
     if Config.NoFall_Enabled and hrp then
-        if hrp.Velocity.Y < -30 then
-            hrp.Velocity = Vector3.new(hrp.Velocity.X, -2, hrp.Velocity.Z)
+        local ray = Ray.new(hrp.Position, Vector3.new(0, -8, 0))
+        local hitPart, hitPos = workspace:FindPartOnRayWithIgnoreList(ray, {char, Camera})
+        if hitPart and hrp.Velocity.Y < -30 then
+            -- Перед самым ударом подменяем высоту для обмана клиентского триггера урона Crim
+            hrp.CFrame = CFrame.new(hrp.Position.X, hitPos.Y + 3.5, hrp.Position.Z)
+            hrp.Velocity = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z)
         end
     end
 
-    -- 3. Infinite Stamina
+    -- 3. HARD CRIMINALITY BYPASS: Infinite Stamina (Сброс веса инвентаря)
     if Config.InfStamina_Enabled and char then
-        local staminaValue = char:FindFirstChild("Stamina") or char:FindFirstChild("Energy") or LocalPlayer:FindFirstChild("Stamina")
-        if staminaValue and staminaValue:IsA("ValueBase") then 
-            staminaValue.Value = 100 
-        end
+        local staminaValue = char:FindFirstChild("Stamina") or LocalPlayer:FindFirstChild("Stamina")
+        if staminaValue then staminaValue.Value = 100 end
+        
+        -- Ломаем систему веса сумок в Crim, которая вешает кулдаун на бег
         pcall(function()
-            local runScript = char:FindFirstChild("Animate") or char:FindFirstChild("Movement")
-            if runScript then
-                local staminaMod = runScript:FindFirstChild("Stamina") or runScript:FindFirstChild("Sprint")
-                if staminaMod and staminaMod:IsA("ValueBase") then
-                    staminaMod.Value = 100
-                end
+            local defs = char:FindFirstChild("Attributes") or LocalPlayer:FindFirstChild("Attributes")
+            if defs then
+                local weight = defs:FindFirstChild("Weight") or defs:FindFirstChild("EquippedWeight")
+                if weight then weight.Value = 0 end
             end
         end)
     end
