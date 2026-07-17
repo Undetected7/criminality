@@ -1,8 +1,6 @@
 -- =========================================================================
---                     GRIMOIRE.CC // CONFIG MODULE (V16)
+--                     GRIMOIRE.CC // BY UNDETECTED
 -- =========================================================================
--- Фикс случайного удаления! Твой конфиг снова жив, Джекки! <3
-
 local Color3 = Color3 or _G.Color3 or game:GetService("Players").LocalPlayer.Character and Color3
 local Enum = Enum or _G.Enum
 
@@ -29,8 +27,7 @@ local Config = {
     Freecam_Speed = 1.2,
     
     NoFall_Enabled = false,
-    InfStamina_Enabled = false,
-    Bhop_Enabled = false
+    InfStamina_Enabled = false
 }
 
 local ChamsConfig = {
