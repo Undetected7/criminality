@@ -1,19 +1,19 @@
 local UI = {}
 
--- ФИКС: Теперь аргументы строго соответствуют Лоадеру!
 function UI.Init(Config, ChamsConfig, FriendsList)
     local Players = game:GetService("Players")
     local UserInputService = game:GetService("UserInputService")
     local CoreGui = game:GetService("CoreGui")
     local LocalPlayer = Players.LocalPlayer
 
+    -- Глобальный ScreenGui
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "Grimoire_BY_UNDETECTED"
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.Parent = CoreGui
 
     local MenuFrame = Instance.new("Frame")
-    MenuFrame.Size = UDim2.new(0, 560, 0, 440)
+    MenuFrame.Size = UDim2.new(0, 560, 0, 480) -- Чуть расширили под Fly слайдер
     MenuFrame.Position = UDim2.new(0.3, 0, 0.25, 0)
     MenuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     MenuFrame.BorderSizePixel = 2
@@ -42,6 +42,7 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     ToggleContainer.ZIndex = 3
     ToggleContainer.Parent = MenuFrame
 
+    -- Создание подменю
     local function CreateSubMenu(sizeY, parent)
         local Frame = Instance.new("Frame")
         Frame.Size = UDim2.new(0, 180, 0, sizeY)
@@ -58,16 +59,20 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     local FullbrightSub = CreateSubMenu(90, MenuFrame)
     local StorageSub = CreateSubMenu(100, MenuFrame)
     local CameraSub = CreateSubMenu(60, MenuFrame)
-    local ChamsSub = CreateSubMenu(50, MenuFrame)
+    local ChamsSub = CreateSubMenu(100, MenuFrame) -- Подменю для Колорпикера
+    local FlySub = CreateSubMenu(50, MenuFrame) -- Подменю для Fly слайдера
 
+    -- Закрытие всех подменю
     local function CloseAllSubMenus()
         ESPSub.Visible = false
         FullbrightSub.Visible = false
         StorageSub.Visible = false
         CameraSub.Visible = false
         ChamsSub.Visible = false
+        FlySub.Visible = false
     end
 
+    -- Наш список без Bhop
     local function CreateSubToggle(name, yPos, configKey, parent, onChange)
         local SBtn = Instance.new("TextButton")
         SBtn.Size = UDim2.new(0.9, 0, 0, 24)
@@ -92,6 +97,7 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     CreateSubToggle("Filter: Registers", 35, "Storage_Registers", StorageSub)
     CreateSubToggle("Filter: Loose Loot Piles", 65, "Storage_Loot", StorageSub)
 
+    local isBindingKey = false
     local updatePreview
 
     CreateSubToggle("Show Boxes", 5, "ESP_Boxes", ESPSub, function() updatePreview() end)
@@ -102,7 +108,7 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     CreateSubToggle("Ambient Color Changer", 5, "Ambient_Custom", FullbrightSub)
     CreateSubToggle("Enable 3rd Person", 5, "Camera_Override", CameraSub)
 
-    -- Colour Picker Slider
+    -- ЧАМС КОЛОРПИКЕР (Идеально под Dummy!)
     local HueBar = Instance.new("TextButton")
     HueBar.Size = UDim2.new(0.9, 0, 0, 15)
     HueBar.Position = UDim2.new(0.05, 0, 0, 25)
@@ -123,7 +129,7 @@ function UI.Init(Config, ChamsConfig, FriendsList)
 
     local HuePicker = Instance.new("Frame")
     HuePicker.Size = UDim2.new(0, 6, 1, 4)
-    HuePicker.Position = UDim2.new(Config.Chams_Hue or 0, -3, 0, -2)
+    HuePicker.Position = UDim2.new(Config.Chams_Hue, -3, 0, -2)
     HuePicker.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     HuePicker.BorderSizePixel = 1
     HuePicker.ZIndex = 17
@@ -133,7 +139,7 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     PickerTitle.Size = UDim2.new(1, 0, 0, 15)
     PickerTitle.Position = UDim2.new(0, 0, 0, 5)
     PickerTitle.BackgroundTransparency = 1
-    PickerTitle.Text = "CHAMS COLOR PICKER"
+    PickerTitle.Text = "ESP/CHAMS COLOR PICKER"
     PickerTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
     PickerTitle.Font = Enum.Font.Code
     PickerTitle.TextSize = 10
@@ -152,14 +158,16 @@ function UI.Init(Config, ChamsConfig, FriendsList)
             local barLeft = HueBar.AbsolutePosition.X
             local barWidth = HueBar.AbsoluteSize.X
             local pct = math.clamp((mouseX - barLeft) / barWidth, 0, 1)
-            
             HuePicker.Position = UDim2.new(pct, -3, 0, -2)
             Config.Chams_Hue = pct
+            -- Меняем цвет ESP и Chams одним ползунком!
             ChamsConfig.EnemyColor = Color3.fromHSV(pct, 1, 1)
+            ChamsConfig.EnemyColor = ChamsConfig.EnemyColor
             updatePreview()
         end
     end)
 
+    -- Главная функция создания кнопок
     local function CreateToggle(name, yPos, configKey)
         local Frame = Instance.new("Frame")
         Frame.Size = UDim2.new(1, 0, 0, 26)
@@ -168,7 +176,7 @@ function UI.Init(Config, ChamsConfig, FriendsList)
         Frame.ZIndex = 3
         Frame.Parent = ToggleContainer
 
-        local hasBind = (configKey == "Freecam_Enabled" or configKey == "Camera_Override")
+        local hasBind = (configKey == "Freecam_Enabled" or configKey == "Camera_Override" or configKey == "FlyHack_Enabled")
         local Button = Instance.new("TextButton")
         Button.Size = UDim2.new(hasBind and 0.7 or 1, 0, 1, 0)
         Button.BackgroundColor3 = Config[configKey] and Color3.fromRGB(45, 120, 45) or Color3.fromRGB(35, 35, 35)
@@ -185,7 +193,7 @@ function UI.Init(Config, ChamsConfig, FriendsList)
             BindBtn.Size = UDim2.new(0.25, 0, 1, 0)
             BindBtn.Position = UDim2.new(0.75, 0, 0, 0)
             BindBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-            local currentBind = (configKey == "Freecam_Enabled") and Config.Freecam_Bind or Config.Camera_Bind
+            local currentBind = (configKey == "Freecam_Enabled") and Config.Freecam_Bind or (configKey == "FlyHack_Enabled" and Config.FlyHack_Bind or Config.Camera_Bind)
             BindBtn.Text = currentBind and currentBind.Name or "..."
             BindBtn.TextColor3 = Color3.fromRGB(255, 200, 0)
             BindBtn.Font = Enum.Font.Code
@@ -193,7 +201,7 @@ function UI.Init(Config, ChamsConfig, FriendsList)
             BindBtn.Parent = Frame
             
             BindBtn.MouseButton1Click:Connect(function()
-                _G.BindingKey = configKey
+                isBindingKey = configKey
                 BindBtn.Text = "..."
             end)
         end
@@ -207,27 +215,30 @@ function UI.Init(Config, ChamsConfig, FriendsList)
         end)
 
         Button.MouseButton2Click:Connect(function()
-            local lastState = false
-            if configKey == "ESP_Enabled" then lastState = ESPSub.Visible
-            elseif configKey == "Fullbright_Enabled" then lastState = FullbrightSub.Visible
-            elseif configKey == "Storage_Enabled" then lastState = StorageSub.Visible
-            elseif configKey == "Camera_Override" then lastState = CameraSub.Visible
-            elseif configKey == "Chams_Enabled" then lastState = ChamsSub.Visible end
+            local currentTargetState = false
+            if configKey == "ESP_Enabled" then currentTargetState = ESPSub.Visible
+            elseif configKey == "Fullbright_Enabled" then currentTargetState = FullbrightSub.Visible
+            elseif configKey == "Storage_Enabled" then currentTargetState = StorageSub.Visible
+            elseif configKey == "Camera_Override" then currentTargetState = CameraSub.Visible
+            elseif configKey == "Chams_Enabled" then currentTargetState = ChamsSub.Visible
+            elseif configKey == "FlyHack_Enabled" then currentTargetState = FlySub.Visible end
             
             CloseAllSubMenus()
             
-            if configKey == "ESP_Enabled" then  ESPSub.Position = UDim2.new(0, 10, 0, yPos + 75) ESPSub.Visible = not lastState
-            elseif configKey == "Fullbright_Enabled" then FullbrightSub.Position = UDim2.new(0, 10, 0, yPos + 75) FullbrightSub.Visible = not lastState
-            elseif configKey == "Storage_Enabled" then StorageSub.Position = UDim2.new(0, 10, 0, yPos + 75) StorageSub.Visible = not lastState
-            elseif configKey == "Camera_Override" then CameraSub.Position = UDim2.new(0, 10, 0, yPos + 75) CameraSub.Visible = not lastState
-            elseif configKey == "Chams_Enabled" then ChamsSub.Position = UDim2.new(0, 10, 0, yPos + 75) ChamsSub.Visible = not lastState end
+            if configKey == "ESP_Enabled" then ESPSub.Position = UDim2.new(0, 10, 0, yPos + 75) ESPSub.Visible = not currentTargetState
+            elseif configKey == "Fullbright_Enabled" then FullbrightSub.Position = UDim2.new(0, 10, 0, yPos + 75) FullbrightSub.Visible = not currentTargetState
+            elseif configKey == "Storage_Enabled" then StorageSub.Position = UDim2.new(0, 10, 0, yPos + 75) StorageSub.Visible = not currentTargetState
+            elseif configKey == "Camera_Override" then CameraSub.Position = UDim2.new(0, 10, 0, yPos + 75) CameraSub.Visible = not currentTargetState
+            elseif configKey == "Chams_Enabled" then ChamsSub.Position = UDim2.new(0, 10, 0, yPos + 75) ChamsSub.Visible = not currentTargetState
+            elseif configKey == "FlyHack_Enabled" then FlySub.Position = UDim2.new(0, 10, 0, yPos + 75) FlySub.Visible = not currentTargetState end
         end)
 
+        -- Авто-обновление внешнего вида кнопок
         task.spawn(function()
             while true do
                 task.wait(0.5)
                 if hasBind and BindBtn then
-                    local b = (configKey == "Freecam_Enabled") and Config.Freecam_Bind or Config.Camera_Bind
+                    local b = (configKey == "Freecam_Enabled") and Config.Freecam_Bind or (configKey == "FlyHack_Enabled" and Config.FlyHack_Bind or Config.Camera_Bind)
                     BindBtn.Text = b and b.Name or "..."
                     Button.BackgroundColor3 = Config[configKey] and Color3.fromRGB(45, 120, 45) or Color3.fromRGB(35, 35, 35)
                     Button.Text = name .. (Config[configKey] and " [ON]" or " [OFF]")
@@ -245,8 +256,25 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     CreateToggle("No Fall Damage", 180, "NoFall_Enabled")
     CreateToggle("No Post-Processing", 210, "NoPostProcessing")
     CreateToggle("3rd Person (RMB)", 240, "Camera_Override")
+    CreateToggle("Legit Fly Hack (RMB)", 270, "FlyHack_Enabled") -- Новая кнопка!
 
-    -- ESP PREVIEW
+    -- Глобальная обработка биндов
+    UserInputService.InputBegan:Connect(function(input, processed)
+        if input.KeyCode == Enum.KeyCode.Insert then
+            Config.MenuOpen = not Config.MenuOpen
+            MenuFrame.Visible = Config.MenuOpen
+            if not Config.MenuOpen then CloseAllSubMenus() end
+        elseif isBindingKey then
+            if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode ~= Enum.KeyCode.Escape then
+                if isBindingKey == "Freecam_Enabled" then Config.Freecam_Bind = input.KeyCode
+                elseif isBindingKey == "FlyHack_Enabled" then Config.FlyHack_Bind = input.KeyCode
+                elseif isBindingKey == "Camera_Override" then Config.Camera_Bind = input.KeyCode end
+            end
+            isBindingKey = nil
+        end
+    end)
+
+    -- ESP PREVIEW CONTAINER
     local PreviewContainer = Instance.new("Frame")
     PreviewContainer.Size = UDim2.new(0, 180, 0, 240)
     PreviewContainer.Position = UDim2.new(0, 220, 0, 40)
@@ -299,6 +327,7 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     CreatePart("Left Leg", Vector3.new(1, 2, 1), Vector3.new(-0.5, -2, 0))
     CreatePart("Right Leg", Vector3.new(1, 2, 1), Vector3.new(0.5, -2, 0))
 
+    -- Оверлей бокса рендерится СТРОГО ПОВЕРХ вьюпорта контейнера
     local PreviewBox = Instance.new("Frame")
     PreviewBox.Size = UDim2.new(0, 110, 0, 180)
     PreviewBox.Position = UDim2.new(0.5, -55, 0.5, -80)
@@ -308,37 +337,68 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     PreviewBox.Visible = false
     PreviewBox.Parent = PreviewContainer
 
-    local PreviewName = Instance.new("TextLabel")
-    PreviewName.Size = UDim2.new(1, 0, 0, 15)
-    PreviewName.Position = UDim2.new(0, 0, 0, -18)
-    PreviewName.BackgroundTransparency = 1
-    PreviewName.Text = "Player_Dummy (100HP)"
-    PreviewName.Font = Enum.Font.Code
-    PreviewName.TextSize = 10
-    PreviewName.ZIndex = 11
-    PreviewName.Visible = false
-    PreviewName.Parent = PreviewBox
+    -- Функция для создания перетаскиваемых лейблов
+    local function CreateDraggableLabel(name, text, pos, color, configKey_Pos, zIndex)
+        local Label = Instance.new("TextButton")
+        Label.Name = name
+        Label.Size = UDim2.new(0, 100, 0, 15)
+        Label.Position = pos
+        Label.BackgroundTransparency = 1
+        Label.Text = text
+        Label.TextColor3 = color
+        Label.Font = Enum.Font.Code
+        Label.TextSize = 10
+        Label.ZIndex = zIndex
+        Label.Visible = false
+        Label.Parent = PreviewBox
 
-    local PreviewHealth = Instance.new("Frame")
+        Label.Draggable = true -- Включаем Роблокс-драг для лейблов!
+
+        -- Синхронизация позиции с конфигом (Для примера, пока не сохраняем)
+        Label:GetPropertyChangedSignal("Position"):Connect(function()
+            -- Config[configKey_Pos] = Label.Position -- Нужно прописать в Config.lua
+        end)
+        
+        -- Смена цвета одним кликом! (ПКМ по лейблу ESP)
+        Label.MouseButton2Click:Connect(function()
+            CloseAllSubMenus()
+            ChamsSub.Position = UDim2.new(0, 10, 0, 100)
+            ChamsSub.Visible = true
+        end)
+
+        return Label
+    end
+
+    local PreviewName = CreateDraggableLabel("Name", "Player_Dummy (100HP)", UDim2.new(0, 0, 0, -18), Color3.fromRGB(0, 255, 128), "ESP_NamePos", 11)
+    local PreviewWeapon = CreateDraggableLabel("Weapon", "[KNIFE]", UDim2.new(0, 0, 1, 4), Color3.fromRGB(255, 220, 100), "ESP_WeaponPos", 11)
+
+    -- Полоска ХП тоже перетаскиваемая
+    local PreviewHealth = Instance.new("TextButton") -- Сделали TextButton для драга
+    PreviewHealth.Name = "HPBar"
     PreviewHealth.Size = UDim2.new(0, 3, 1, 0)
     PreviewHealth.Position = UDim2.new(0, -6, 0, 0)
     PreviewHealth.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
     PreviewHealth.BorderSizePixel = 0
+    PreviewHealth.Text = "" -- Без текста
     PreviewHealth.ZIndex = 11
     PreviewHealth.Visible = false
     PreviewHealth.Parent = PreviewBox
-
-    local PreviewWeapon = Instance.new("TextLabel")
-    PreviewWeapon.Size = UDim2.new(1, 0, 0, 15)
-    PreviewWeapon.Position = UDim2.new(0, 0, 1, 4)
-    PreviewWeapon.BackgroundTransparency = 1
-    PreviewWeapon.Text = "[KNIFE]"
-    PreviewWeapon.TextColor3 = Color3.fromRGB(255, 220, 100)
-    PreviewWeapon.Font = Enum.Font.Code
-    PreviewWeapon.TextSize = 10
-    PreviewWeapon.ZIndex = 11
-    PreviewWeapon.Visible = false
-    PreviewWeapon.Parent = PreviewBox
+    
+    PreviewHealth.Draggable = true
+    
+    -- Смена цвета ESP Бокса ЛКМ прямо в Превью!
+    local BoxHitbox = Instance.new("TextButton")
+    BoxHitbox.Size = UDim2.new(1,0,1,0)
+    BoxHitbox.BackgroundTransparency = 1
+    BoxHitbox.Text = ""
+    BoxHitbox.ZIndex = 9 -- Прямо под лейблами
+    BoxHitbox.Parent = PreviewBox
+    
+    BoxHitbox.MouseButton1Click:Connect(function()
+        CloseAllSubMenus()
+        ChamsSub.Position = UDim2.new(0, 10, 0, 100)
+        ChamsSub.Visible = true
+    end)
 
     local PreviewCam = Instance.new("Camera")
     PreviewCam.CFrame = CFrame.new(Vector3.new(0, -0.2, 5.5), Torso.Position)
@@ -364,7 +424,7 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     _G.UpdateMenuPreviewFunc = updatePreview
     updatePreview()
 
-    -- БЕЗВЫЛЕТНЫЙ FRIENDS PANEL
+    -- ВОЗВРАЩЁННЫЙ FRIENDS PANEL
     local FriendContainer = Instance.new("Frame")
     FriendContainer.Size = UDim2.new(0, 140, 1, -45)
     FriendContainer.Position = UDim2.new(0, 410, 0, 40)
@@ -396,15 +456,14 @@ function UI.Init(Config, ChamsConfig, FriendsList)
     UIList.Parent = PlayerScroller
 
     local function UpdateFriendMenu()
-        if not FriendsList then return end
         for _, child in pairs(PlayerScroller:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
         local totalHeight = 0
-        
         local currentPlayers = Players:GetPlayers()
         if currentPlayers then
             for i = 1, #currentPlayers do
                 local p = currentPlayers[i]
-                if p and p ~= LocalPlayer and p.Name then
+                -- ПРОВЕРКА НА NIL: Исправляет ошибку со скриншота!
+                if p and p ~= LocalPlayer and p.Name and p.Character then
                     totalHeight = totalHeight + 24
                     local PButton = Instance.new("TextButton")
                     PButton.Size = UDim2.new(1, -5, 0, 20)
@@ -412,22 +471,9 @@ function UI.Init(Config, ChamsConfig, FriendsList)
                     PButton.TextSize = 10
                     PButton.ZIndex = 5
                     
-                    if FriendsList[p.Name] then 
-                        PButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0) 
-                        PButton.Text = p.Name .. " [FR]" 
-                    else 
-                        PButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40) 
-                        PButton.Text = p.Name 
-                    end
-                    
-                    PButton.TextColor3 = Color3.fromRGB(255,255,255) 
-                    PButton.Parent = PlayerScroller
-                    PButton.MouseButton1Click:Connect(function() 
-                        if p and p.Name then
-                            FriendsList[p.Name] = not FriendsList[p.Name] 
-                            UpdateFriendMenu() 
-                        end
-                    end)
+                    if FriendsList[p.Name] then PButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0) PButton.Text = p.Name .. " [FR]" else PButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40) PButton.Text = p.Name end
+                    PButton.TextColor3 = Color3.fromRGB(255,255,255) PButton.Parent = PlayerScroller
+                    PButton.MouseButton1Click:Connect(function() FriendsList[p.Name] = not FriendsList[p.Name] UpdateFriendMenu() end)
                 end
             end
         end
