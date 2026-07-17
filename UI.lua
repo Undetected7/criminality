@@ -6,7 +6,6 @@ function UI.Init(Config, FriendsList)
     local CoreGui = game:GetService("CoreGui")
     local LocalPlayer = Players.LocalPlayer
 
-    -- База интерфейса
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "Grimoire_Godmode_v15"
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -43,7 +42,6 @@ function UI.Init(Config, FriendsList)
     ToggleContainer.ZIndex = 3
     ToggleContainer.Parent = MenuFrame
 
-    -- Исправленная функция создания подменю
     local function CreateSubMenu(sizeY, parent)
         local Frame = Instance.new("Frame")
         Frame.Size = UDim2.new(0, 180, 0, sizeY)
@@ -51,7 +49,7 @@ function UI.Init(Config, FriendsList)
         Frame.BorderSizePixel = 1
         Frame.BorderColor3 = Color3.fromRGB(60, 60, 60)
         Frame.Visible = false
-        Frame.ZIndex = 15 -- Высокий ZIndex для подменю
+        Frame.ZIndex = 15
         Frame.Parent = parent
         return Frame
     end
@@ -60,7 +58,13 @@ function UI.Init(Config, FriendsList)
     local FullbrightSub = CreateSubMenu(40, MenuFrame)
     local StorageSub = CreateSubMenu(100, MenuFrame)
 
-    -- Настройка слайдера гаммы
+    local function CloseAllSubMenus()
+        ESPSub.Visible = false
+        FullbrightSub.Visible = false
+        StorageSub.Visible = false
+    end
+
+    -- Gamma Slider
     local SliderBtn = Instance.new("TextButton")
     SliderBtn.Size = UDim2.new(0.9, 0, 0, 15)
     SliderBtn.Position = UDim2.new(0.05, 0, 0.5, -7)
@@ -90,7 +94,6 @@ function UI.Init(Config, FriendsList)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then sliding = false end
     end)
 
-    -- Исправленная функция создания суб-переключателей (с ZIndex!)
     local function CreateSubToggle(name, yPos, configKey, parent, onChange)
         local SBtn = Instance.new("TextButton")
         SBtn.Size = UDim2.new(0.9, 0, 0, 24)
@@ -100,7 +103,7 @@ function UI.Init(Config, FriendsList)
         SBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
         SBtn.Font = Enum.Font.Code
         SBtn.TextSize = 11
-        SBtn.ZIndex = parent.ZIndex + 1 -- Гарантированно выше подменю!
+        SBtn.ZIndex = parent.ZIndex + 1
         SBtn.Parent = parent
 
         SBtn.MouseButton1Click:Connect(function()
@@ -111,15 +114,13 @@ function UI.Init(Config, FriendsList)
         end)
     end
 
-    -- Наполнение суб-менюшек
     CreateSubToggle("Filter: Safes", 5, "Storage_Safes", StorageSub)
     CreateSubToggle("Filter: Registers", 35, "Storage_Registers", StorageSub)
     CreateSubToggle("Filter: Loose Loot Piles", 65, "Storage_Loot", StorageSub)
 
     local isBindingFreecam = false
-    local isBindingTrigger = false
+    local updatePreview
 
-    local updatePreview -- Объявим ниже
     CreateSubToggle("Show Boxes", 5, "ESP_Boxes", ESPSub, function() updatePreview() end)
     CreateSubToggle("Show Names", 35, "ShowNames", ESPSub, function() updatePreview() end)
     CreateSubToggle("Show HP Bar", 65, "ShowHP", ESPSub, function() updatePreview() end)
@@ -133,7 +134,7 @@ function UI.Init(Config, FriendsList)
         Frame.ZIndex = 3
         Frame.Parent = ToggleContainer
 
-        local isKeybindField = (configKey == "Freecam_Enabled" or configKey == "Triggerbot_Enabled")
+        local isKeybindField = (configKey == "Freecam_Enabled")
         local Button = Instance.new("TextButton")
         Button.Size = UDim2.new(isKeybindField and 0.7 or 1, 0, 1, 0)
         Button.BackgroundColor3 = Config[configKey] and Color3.fromRGB(45, 120, 45) or Color3.fromRGB(35, 35, 35)
@@ -150,14 +151,14 @@ function UI.Init(Config, FriendsList)
             BindBtn.Size = UDim2.new(0.25, 0, 1, 0)
             BindBtn.Position = UDim2.new(0.75, 0, 0, 0)
             BindBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-            BindBtn.Text = configKey == "Freecam_Enabled" and (Config.Freecam_Bind and Config.Freecam_Bind.Name or "...") or (Config.Triggerbot_Bind and Config.Triggerbot_Bind.Name or "...")
+            BindBtn.Text = Config.Freecam_Bind and Config.Freecam_Bind.Name or "..."
             BindBtn.TextColor3 = Color3.fromRGB(255, 200, 0)
             BindBtn.Font = Enum.Font.Code
             BindBtn.ZIndex = 4
             BindBtn.Parent = Frame
             
             BindBtn.MouseButton1Click:Connect(function()
-                if configKey == "Freecam_Enabled" then isBindingFreecam = true else isBindingTrigger = true end
+                isBindingFreecam = true
                 BindBtn.Text = "..."
             end)
         end
@@ -166,23 +167,27 @@ function UI.Init(Config, FriendsList)
             Config[configKey] = not Config[configKey]
             Button.BackgroundColor3 = Config[configKey] and Color3.fromRGB(45, 120, 45) or Color3.fromRGB(35, 35, 35)
             Button.Text = name .. (Config[configKey] and " [ON]" or " [OFF]")
+            CloseAllSubMenus()
             updatePreview()
         end)
 
         Button.MouseButton2Click:Connect(function()
-            ESPSub.Visible = false
-            StorageSub.Visible = false
-            FullbrightSub.Visible = false
+            local currentTargetState = false
+            if configKey == "ESP_Enabled" then currentTargetState = ESPSub.Visible
+            elseif configKey == "Fullbright_Enabled" then currentTargetState = FullbrightSub.Visible
+            elseif configKey == "Storage_Enabled" then currentTargetState = StorageSub.Visible end
+            
+            CloseAllSubMenus()
             
             if configKey == "ESP_Enabled" then
                 ESPSub.Position = UDim2.new(0, 10, 0, yPos + 75)
-                ESPSub.Visible = not ESPSub.Visible
+                ESPSub.Visible = not currentTargetState
             elseif configKey == "Fullbright_Enabled" then
                 FullbrightSub.Position = UDim2.new(0, 10, 0, yPos + 75)
-                FullbrightSub.Visible = not FullbrightSub.Visible
+                FullbrightSub.Visible = not currentTargetState
             elseif configKey == "Storage_Enabled" then
                 StorageSub.Position = UDim2.new(0, 10, 0, yPos + 75)
-                StorageSub.Visible = not StorageSub.Visible
+                StorageSub.Visible = not currentTargetState
             end
         end)
 
@@ -190,12 +195,19 @@ function UI.Init(Config, FriendsList)
             if isBindingFreecam and configKey == "Freecam_Enabled" then
                 if input.UserInputType == Enum.UserInputType.Keyboard then
                     isBindingFreecam = false
-                    if input.KeyCode == Enum.KeyCode.Escape then Config.Freecam_Bind = nil BindBtn.Text = "..." else Config.Freecam_Bind = input.KeyCode BindBtn.Text = input.KeyCode.Name end
+                    if input.KeyCode == Enum.KeyCode.Escape then 
+                        Config.Freecam_Bind = nil 
+                        BindBtn.Text = "..." 
+                    else 
+                        Config.Freecam_Bind = input.KeyCode 
+                        BindBtn.Text = input.KeyCode.Name 
+                    end
                 end
-            elseif isBindingTrigger and configKey == "Triggerbot_Enabled" then
-                if input.UserInputType == Enum.UserInputType.Keyboard then
-                    isBindingTrigger = false
-                    if input.KeyCode == Enum.KeyCode.Escape then Config.Triggerbot_Bind = nil BindBtn.Text = "..." else Config.Triggerbot_Bind = input.KeyCode BindBtn.Text = input.KeyCode.Name end
+            elseif Config.Freecam_Bind and input.KeyCode == Config.Freecam_Bind and not processed then
+                if configKey == "Freecam_Enabled" then
+                    Config.Freecam_Enabled = not Config.Freecam_Enabled
+                    Button.BackgroundColor3 = Config.Freecam_Enabled and Color3.fromRGB(45, 120, 45) or Color3.fromRGB(35, 35, 35)
+                    Button.Text = name .. (Config.Freecam_Enabled and " [ON]" or " [OFF]")
                 end
             end
         end)
@@ -207,12 +219,11 @@ function UI.Init(Config, FriendsList)
     CreateToggle("Storage ESP (RMB)", 90, "Storage_Enabled")
     CreateToggle("Fullbright (RMB)", 120, "Fullbright_Enabled")
     CreateToggle("Freecam (RMB)", 150, "Freecam_Enabled")
-    CreateToggle("Triggerbot (RMB)", 180, "Triggerbot_Enabled")
-    CreateToggle("No Fall Damage", 210, "NoFall_Enabled")
-    CreateToggle("Infinite Stamina", 240, "InfStamina_Enabled")
-    CreateToggle("Auto Bhop", 270, "Bhop_Enabled")
+    CreateToggle("No Fall Damage", 180, "NoFall_Enabled")
+    CreateToggle("Infinite Stamina", 210, "InfStamina_Enabled")
+    CreateToggle("Auto Bhop", 240, "Bhop_Enabled")
 
-    -- СТИЛЬНАЯ 3D VIEWPORT PREVIEW ПАНЕЛЬ
+    -- 3D VIEWPORT PREVIEW PANEL (WITH R6 BLOCKS DUMMY!)
     local PreviewContainer = Instance.new("Frame")
     PreviewContainer.Size = UDim2.new(0, 180, 0, 240)
     PreviewContainer.Position = UDim2.new(0, 220, 0, 40)
@@ -238,35 +249,42 @@ function UI.Init(Config, FriendsList)
     Viewport.ZIndex = 4
     Viewport.Parent = PreviewContainer
 
-    -- Создаем роблокс-персонажа для превью
+    -- R6 Model
     local PreviewModel = Instance.new("Model")
-    PreviewModel.Name = "PreviewDummy"
+    PreviewModel.Name = "R6_Dummy"
     PreviewModel.Parent = Viewport
 
-    local Part = Instance.new("Part")
-    Part.Size = Vector3.new(2, 2, 1)
-    Part.Color = Color3.fromRGB(180, 180, 180)
-    Part.Position = Vector3.new(0, 0, 0)
-    Part.Anchored = true
-    Part.Parent = PreviewModel
-    PreviewModel.PrimaryPart = Part
+    local function CreatePart(name, size, pos, color)
+        local p = Instance.new("Part")
+        p.Name = name
+        p.Size = size
+        p.Position = pos
+        p.Color = color
+        p.Material = Enum.Material.SmoothPlastic
+        p.Anchored = true
+        p.CanCollide = false
+        p.Parent = PreviewModel
+        return p
+    end
 
-    local Head = Instance.new("Part")
-    Head.Size = Vector3.new(1.2, 1.2, 1.2)
-    Head.Color = Color3.fromRGB(220, 170, 130)
-    Head.Position = Vector3.new(0, 1.5, 0)
-    Head.Shape = Enum.PartType.Ball
-    Head.Anchored = true
-    Head.Parent = PreviewModel
+    local dummyColor = Color3.fromRGB(150, 150, 150)
+    local Torso = CreatePart("Torso", Vector3.new(2, 2, 1), Vector3.new(0, 0, 0), dummyColor)
+    PreviewModel.PrimaryPart = Torso
 
-    -- Отрисовка визуала внутри превью
+    local Head = CreatePart("Head", Vector3.new(1.2, 1.2, 1.2), Vector3.new(0, 1.5, 0), dummyColor)
+    local LeftArm = CreatePart("Left Arm", Vector3.new(1, 2, 1), Vector3.new(-1.5, 0, 0), dummyColor)
+    local RightArm = CreatePart("Right Arm", Vector3.new(1, 2, 1), Vector3.new(1.5, 0, 0), dummyColor)
+    local LeftLeg = CreatePart("Left Leg", Vector3.new(1, 2, 1), Vector3.new(-0.5, -2, 0), dummyColor)
+    local RightLeg = CreatePart("Right Leg", Vector3.new(1, 2, 1), Vector3.new(0.5, -2, 0), dummyColor)
+
+    -- Viewport Overlay
     local PreviewBox = Instance.new("Frame")
-    PreviewBox.Size = UDim2.new(0.6, 0, 0.8, 0)
-    PreviewBox.Position = UDim2.new(0.2, 0, 0.1, 0)
+    PreviewBox.Size = UDim2.new(0.65, 0, 0.85, 0)
+    PreviewBox.Position = UDim2.new(0.175, 0, 0.05, 0)
     PreviewBox.BackgroundTransparency = 1
     PreviewBox.BorderColor3 = Color3.fromRGB(0, 255, 100)
     PreviewBox.BorderSizePixel = 1
-    PreviewBox.ZIndex = 5 -- Выше вьюпорта!
+    PreviewBox.ZIndex = 5
     PreviewBox.Visible = false
     PreviewBox.Parent = Viewport
 
@@ -303,9 +321,8 @@ function UI.Init(Config, FriendsList)
     PreviewWeapon.Visible = false
     PreviewWeapon.Parent = PreviewBox
 
-    -- Камера для превью
     local PreviewCam = Instance.new("Camera")
-    PreviewCam.CFrame = CFrame.new(Vector3.new(0, 0.5, 5.5), Part.Position)
+    PreviewCam.CFrame = CFrame.new(Vector3.new(0, -0.2, 5.5), Torso.Position)
     Viewport.CurrentCamera = PreviewCam
     PreviewCam.Parent = Viewport
 
@@ -317,7 +334,7 @@ function UI.Init(Config, FriendsList)
     end
     updatePreview()
 
-    -- Friend Panel Setup
+    -- Friend Panel
     local FriendContainer = Instance.new("Frame")
     FriendContainer.Size = UDim2.new(0, 140, 1, -45)
     FriendContainer.Position = UDim2.new(0, 410, 0, 40)
@@ -372,9 +389,7 @@ function UI.Init(Config, FriendsList)
             Config.MenuOpen = not Config.MenuOpen
             MenuFrame.Visible = Config.MenuOpen
             if not Config.MenuOpen then 
-                FullbrightSub.Visible = false 
-                StorageSub.Visible = false 
-                ESPSub.Visible = false
+                CloseAllSubMenus()
             else 
                 UpdateFriendMenu() 
             end
