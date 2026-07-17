@@ -13,7 +13,7 @@ function UI.Init(Config, FriendsList)
     ScreenGui.ResetOnSpawn = false
 
     local MenuFrame = Instance.new("Frame")
-    MenuFrame.Size = UDim2.new(0, 560, 0, 430) -- Чуток урезали снизу, убрав бхоп
+    MenuFrame.Size = UDim2.new(0, 560, 0, 430)
     MenuFrame.Position = UDim2.new(0.3, 0, 0.25, 0)
     MenuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     MenuFrame.BorderSizePixel = 2
@@ -55,44 +55,16 @@ function UI.Init(Config, FriendsList)
     end
 
     local ESPSub = CreateSubMenu(130, MenuFrame)
-    local FullbrightSub = CreateSubMenu(40, MenuFrame)
+    local FullbrightSub = CreateSubMenu(90, MenuFrame) -- Расширили под кастомный цвет мира!
     local StorageSub = CreateSubMenu(100, MenuFrame)
+    local CameraSub = CreateSubMenu(100, MenuFrame)  -- Саб-меню для настроек камеры
 
     local function CloseAllSubMenus()
         ESPSub.Visible = false
         FullbrightSub.Visible = false
         StorageSub.Visible = false
+        CameraSub.Visible = false
     end
-
-    -- Gamma Slider
-    local SliderBtn = Instance.new("TextButton")
-    SliderBtn.Size = UDim2.new(0.9, 0, 0, 15)
-    SliderBtn.Position = UDim2.new(0.05, 0, 0.5, -7)
-    SliderBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    SliderBtn.Text = ""
-    SliderBtn.ZIndex = 16
-    SliderBtn.Parent = FullbrightSub
-
-    local SliderFill = Instance.new("Frame")
-    SliderFill.Size = UDim2.new(0.6, 0, 1, 0)
-    SliderFill.BackgroundColor3 = Color3.fromRGB(45, 120, 45)
-    SliderFill.ZIndex = 17
-    SliderFill.Parent = SliderBtn
-
-    local SliderTitle = Instance.new("TextLabel")
-    SliderTitle.Size = UDim2.new(1, 0, 0, 15)
-    SliderTitle.BackgroundTransparency = 1
-    SliderTitle.Text = "GAMMA: 160"
-    SliderTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-    SliderTitle.Font = Enum.Font.Code
-    SliderTitle.ZIndex = 17
-    SliderTitle.Parent = FullbrightSub
-
-    local sliding = false
-    SliderBtn.MouseButton1Down:Connect(function() sliding = true end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then sliding = false end
-    end)
 
     local function CreateSubToggle(name, yPos, configKey, parent, onChange)
         local SBtn = Instance.new("TextButton")
@@ -114,6 +86,7 @@ function UI.Init(Config, FriendsList)
         end)
     end
 
+    -- Наполнение подменю
     CreateSubToggle("Filter: Safes", 5, "Storage_Safes", StorageSub)
     CreateSubToggle("Filter: Registers", 35, "Storage_Registers", StorageSub)
     CreateSubToggle("Filter: Loose Loot Piles", 65, "Storage_Loot", StorageSub)
@@ -125,6 +98,68 @@ function UI.Init(Config, FriendsList)
     CreateSubToggle("Show Names", 35, "ShowNames", ESPSub, function() updatePreview() end)
     CreateSubToggle("Show HP Bar", 65, "ShowHP", ESPSub, function() updatePreview() end)
     CreateSubToggle("Show Weapon", 95, "ShowWeapon", ESPSub, function() updatePreview() end)
+
+    -- Наполнение Fullbright подменю (Слайдер гаммы + Кастомный цвет мира)
+    CreateSubToggle("Ambient Color Changer", 5, "Ambient_Custom", FullbrightSub)
+    
+    local SliderBtn = Instance.new("TextButton")
+    SliderBtn.Size = UDim2.new(0.9, 0, 0, 15)
+    SliderBtn.Position = UDim2.new(0.05, 0, 0, 60)
+    SliderBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    SliderBtn.Text = ""
+    SliderBtn.ZIndex = 16
+    SliderBtn.Parent = FullbrightSub
+
+    local SliderFill = Instance.new("Frame")
+    SliderFill.Size = UDim2.new(0.6, 0, 1, 0)
+    SliderFill.BackgroundColor3 = Color3.fromRGB(45, 120, 45)
+    SliderFill.ZIndex = 17
+    SliderFill.Parent = SliderBtn
+
+    local SliderTitle = Instance.new("TextLabel")
+    SliderTitle.Size = UDim2.new(0.9, 0, 0, 20)
+    SliderTitle.Position = UDim2.new(0.05, 0, 0, 35)
+    SliderTitle.BackgroundTransparency = 1
+    SliderTitle.Text = "BRIGHTNESS: 160"
+    SliderTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    SliderTitle.Font = Enum.Font.Code
+    SliderTitle.TextSize = 11
+    SliderTitle.ZIndex = 17
+    SliderTitle.Parent = FullbrightSub
+
+    local sliding = false
+    SliderBtn.MouseButton1Down:Connect(function() sliding = true end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then sliding = false end
+    end)
+    
+    -- Логика движения ползунка яркости
+    UserInputService.InputChanged:Connect(function(input)
+        if sliding and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local mousePos = UserInputService:GetMouseLocation().X
+            local btnLeft = SliderBtn.AbsolutePosition.X
+            local btnWidth = SliderBtn.AbsoluteSize.X
+            local percentage = math.clamp((mousePos - btnLeft) / btnWidth, 0, 1)
+            
+            SliderFill.Size = UDim2.new(percentage, 0, 1, 0)
+            Config.Fullbright_Gamma = math.floor(percentage * 255)
+            SliderTitle.Text = "BRIGHTNESS: " .. tostring(Config.Fullbright_Gamma)
+        end
+    end)
+
+    -- Наполнение Camera подменю (Настройки 3-го лица)
+    CreateSubToggle("Enable 3rd Person Override", 5, "Camera_Override", CameraSub)
+    
+    local CamTitle = Instance.new("TextLabel")
+    CamTitle.Size = UDim2.new(0.9, 0, 0, 20)
+    CamTitle.Position = UDim2.new(0.05, 0, 0, 35)
+    CamTitle.BackgroundTransparency = 1
+    CamTitle.Text = "FOV / DISTANCE CONTROLS"
+    CamTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CamTitle.Font = Enum.Font.Code
+    CamTitle.TextSize = 10
+    CamTitle.ZIndex = 17
+    CamTitle.Parent = CameraSub
 
     local function CreateToggle(name, yPos, configKey)
         local Frame = Instance.new("Frame")
@@ -175,7 +210,8 @@ function UI.Init(Config, FriendsList)
             local currentTargetState = false
             if configKey == "ESP_Enabled" then currentTargetState = ESPSub.Visible
             elseif configKey == "Fullbright_Enabled" then currentTargetState = FullbrightSub.Visible
-            elseif configKey == "Storage_Enabled" then currentTargetState = StorageSub.Visible end
+            elseif configKey == "Storage_Enabled" then currentTargetState = StorageSub.Visible
+            elseif configKey == "Camera_Override" then currentTargetState = CameraSub.Visible end
             
             CloseAllSubMenus()
             
@@ -188,6 +224,9 @@ function UI.Init(Config, FriendsList)
             elseif configKey == "Storage_Enabled" then
                 StorageSub.Position = UDim2.new(0, 10, 0, yPos + 75)
                 StorageSub.Visible = not currentTargetState
+            elseif configKey == "Camera_Override" then
+                CameraSub.Position = UDim2.new(0, 10, 0, yPos + 75)
+                CameraSub.Visible = not currentTargetState
             end
         end)
 
@@ -207,7 +246,6 @@ function UI.Init(Config, FriendsList)
         end)
     end
 
-    -- Наш список без Bhop
     CreateToggle("ESP (RMB)", 0, "ESP_Enabled")
     CreateToggle("Enable Chams", 30, "Chams_Enabled")
     CreateToggle("2D Screen Skeletons", 60, "Skeleton_Enabled")
@@ -216,8 +254,9 @@ function UI.Init(Config, FriendsList)
     CreateToggle("Freecam (RMB)", 150, "Freecam_Enabled")
     CreateToggle("No Fall Damage", 180, "NoFall_Enabled")
     CreateToggle("Infinite Stamina", 210, "InfStamina_Enabled")
+    CreateToggle("3rd Person Config (RMB)", 240, "Camera_Override") -- Новая кнопка меню!
 
-    -- СТИЛЬНАЯ ПАНЕЛЬ С КЛАССИЧЕСКИМ R6 DUMMY
+    -- ПАНЕЛЬ С СЕРЫМ R6 DUMMY ДЛЯ ESP PREVIEW
     local PreviewContainer = Instance.new("Frame")
     PreviewContainer.Size = UDim2.new(0, 180, 0, 240)
     PreviewContainer.Position = UDim2.new(0, 220, 0, 40)
@@ -243,7 +282,6 @@ function UI.Init(Config, FriendsList)
     Viewport.ZIndex = 4
     Viewport.Parent = PreviewContainer
 
-    -- Создаем модельку R6
     local PreviewModel = Instance.new("Model")
     PreviewModel.Name = "R6_Dummy"
     PreviewModel.Parent = Viewport
@@ -271,14 +309,14 @@ function UI.Init(Config, FriendsList)
     CreatePart("Left Leg", Vector3.new(1, 2, 1), Vector3.new(-0.5, -2, 0))
     CreatePart("Right Leg", Vector3.new(1, 2, 1), Vector3.new(0.5, -2, 0))
 
-    -- ФИКС: Рендерим 2D элементы ПОВЕРХ вьюпорта (Внутри контейнера панели!)
+    -- Оверлей 2D поверх вьюпорта контейнера
     local PreviewBox = Instance.new("Frame")
     PreviewBox.Size = UDim2.new(0, 110, 0, 180)
     PreviewBox.Position = UDim2.new(0.5, -55, 0.5, -80)
     PreviewBox.BackgroundTransparency = 1
     PreviewBox.BorderColor3 = Color3.fromRGB(255, 0, 128)
     PreviewBox.BorderSizePixel = 1
-    PreviewBox.ZIndex = 10 -- Высокий индекс
+    PreviewBox.ZIndex = 10
     PreviewBox.Visible = false
     PreviewBox.Parent = PreviewContainer
 
@@ -303,12 +341,12 @@ function UI.Init(Config, FriendsList)
     PreviewHealth.Visible = false
     PreviewHealth.Parent = PreviewBox
 
-    -- ФИКС: Оружие строго ВНИЗУ коробки!
+    -- Оружие строго под ногами, как просил Джек!
     local PreviewWeapon = Instance.new("TextLabel")
     PreviewWeapon.Size = UDim2.new(1, 0, 0, 15)
     PreviewWeapon.Position = UDim2.new(0, 0, 1, 4)
     PreviewWeapon.BackgroundTransparency = 1
-    PreviewWeapon.Text = "[AK-47]"
+    PreviewWeapon.Text = "[KNIFE]"
     PreviewWeapon.TextColor3 = Color3.fromRGB(255, 220, 100)
     PreviewWeapon.Font = Enum.Font.Code
     PreviewWeapon.TextSize = 10
@@ -336,7 +374,7 @@ function UI.Init(Config, FriendsList)
     end
     updatePreview()
 
-    -- Friends Menu
+    -- Friends Panel
     local FriendContainer = Instance.new("Frame")
     FriendContainer.Size = UDim2.new(0, 140, 1, -45)
     FriendContainer.Position = UDim2.new(0, 410, 0, 40)
