@@ -15,6 +15,7 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
     local function CreatePlayerESP(player)
         if player == LocalPlayer then return end
         
+        -- Billboard для имени и оружия
         local BBGui = Instance.new("BillboardGui")
         BBGui.Size = UDim2.new(0, 200, 0, 50)
         BBGui.StudsOffset = Vector3.new(0, 3.5, 0)
@@ -35,16 +36,30 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
         NameLabel.TextStrokeTransparency = 0
         NameLabel.Parent = Container
 
-        local HealthOutline = Instance.new("Frame")
-        HealthOutline.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-        HealthOutline.Size = UDim2.new(0, 60, 0, 6)
-        HealthOutline.Position = UDim2.new(0.5, -30, 0, 22)
-        HealthOutline.Parent = Container
+        local WeaponLabel = Instance.new("TextLabel")
+        WeaponLabel.BackgroundTransparency = 1
+        WeaponLabel.Size = UDim2.new(1, 0, 0, 20)
+        WeaponLabel.Position = UDim2.new(0, 0, 0, 20)
+        WeaponLabel.Font = Enum.Font.Code
+        WeaponLabel.TextColor3 = Color3.fromRGB(255, 220, 100)
+        WeaponLabel.TextStrokeTransparency = 0
+        WeaponLabel.TextSize = 10
+        WeaponLabel.Parent = Container
 
-        local HealthBar = Instance.new("Frame")
-        HealthBar.BorderSizePixel = 0
-        HealthBar.Size = UDim2.new(1, 0, 1, 0)
-        HealthBar.Parent = HealthOutline
+        -- Рамка 2D бокса на экране
+        local BoxFrame = Instance.new("Frame")
+        BoxFrame.BackgroundTransparency = 1
+        BoxFrame.BorderSizePixel = 1
+        BoxFrame.BorderColor3 = ChamsConfig.EnemyColor
+        BoxFrame.Visible = false
+        BoxFrame.Parent = UILinesFolder.Parent
+
+        -- Линия здоровья рядом с боксом
+        local HPBar = Instance.new("Frame")
+        HPBar.BorderSizePixel = 0
+        HPBar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+        HPBar.Visible = false
+        HPBar.Parent = UILinesFolder.Parent
 
         local Highlight = Instance.new("Highlight")
         Highlight.Enabled = false
@@ -67,7 +82,15 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
             table.insert(Lines, {Frame = LFrame, PartA = bonePairs[i][1], PartB = bonePairs[i][2]})
         end
 
-        PlayerVisuals[player] = {BBGui = BBGui, Name = NameLabel, Health = HealthBar, Chams = Highlight, Lines = Lines}
+        PlayerVisuals[player] = {
+            BBGui = BBGui, 
+            Name = NameLabel, 
+            Weapon = WeaponLabel, 
+            Box = BoxFrame, 
+            HP = HPBar, 
+            Chams = Highlight, 
+            Lines = Lines
+        }
     end
 
     Players.PlayerAdded:Connect(CreatePlayerESP)
@@ -176,25 +199,78 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
         local pChar = player.Character
         local pHum = pChar and pChar:FindFirstChildOfClass("Humanoid")
         local pHead = pChar and pChar:FindFirstChild("Head")
+        local hrp = pChar and pChar:FindFirstChild("HumanoidRootPart")
 
-        if Config.ESP_Enabled and pHead and pHum and pHum.Health > 0 then
+        if Config.ESP_Enabled and pHead and pHum and pHum.Health > 0 and hrp then
             local isFriend = FriendsList[player.Name]
             local targetColor = isFriend and ChamsConfig.FriendColor or ChamsConfig.EnemyColor
             
+            -- Определение оружия в руках игрока
+            local currentWeapon = "[Unarmed]"
+            if pChar then
+                local tool = pChar:FindFirstChildOfClass("Tool")
+                if tool then
+                    currentWeapon = "[" .. tool.Name .. "]"
+                end
+            end
+
+            -- Отрисовка имени и оружия через BillboardGui
             if objs.BBGui.Adornee ~= pHead then objs.BBGui.Adornee = pHead end
-            objs.BBGui.Enabled = Config.ShowNames
+            objs.BBGui.Enabled = Config.ShowNames or Config.ShowWeapon
+            
             if Config.ShowNames then
                 objs.Name.Text = player.Name .. " (" .. math.floor(pHum.Health) .. "HP)"
                 objs.Name.TextColor3 = targetColor
-                local pct = math.clamp(pHum.Health / pHum.MaxHealth, 0, 1)
-                objs.Health.Size = UDim2.new(pct, 0, 1, 0)
-                objs.Health.BackgroundColor3 = isFriend and ChamsConfig.FriendColor or Color3.fromHSV(pct * 0.3, 1, 1)
+                objs.Name.Visible = true
+            else
+                objs.Name.Visible = false
             end
 
+            if Config.ShowWeapon then
+                objs.Weapon.Text = currentWeapon
+                objs.Weapon.TextColor3 = Color3.fromRGB(255, 230, 100)
+                objs.Weapon.Visible = true
+            else
+                objs.Weapon.Visible = false
+            end
+
+            -- Отрисовка 2D Квадрата (Box) и Полоски здоровья (HP Bar)
+            local headPos, headOnScreen = Camera:WorldToViewportPoint(pHead.Position + Vector3.new(0, 0.5, 0))
+            local legPos, legOnScreen = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
+
+            if headOnScreen and legOnScreen and Config.ESP_Boxes then
+                local height = math.abs(headPos.Y - legPos.Y)
+                local width = height / 1.6
+
+                objs.Box.Size = UDim2.new(0, width, 0, height)
+                objs.Box.Position = UDim2.new(0, headPos.X - width/2, 0, headPos.Y)
+                objs.Box.BorderColor3 = targetColor
+                objs.Box.Visible = true
+
+                -- HP Bar с левой стороны коробки
+                if Config.ShowHP then
+                    local pct = math.clamp(pHum.Health / pHum.MaxHealth, 0, 1)
+                    local hpHeight = height * pct
+
+                    objs.HP.Size = UDim2.new(0, 3, 0, hpHeight)
+                    objs.HP.Position = UDim2.new(0, (headPos.X - width/2) - 6, 0, headPos.Y + (height - hpHeight))
+                    objs.HP.BackgroundColor3 = Color3.fromHSV(pct * 0.3, 1, 1) -- Плавный цвет от красного к зеленому
+                    objs.HP.Visible = true
+                else
+                    objs.HP.Visible = false
+                end
+            else
+                objs.Box.Visible = false
+                objs.HP.Visible = false
+            end
+
+            -- Чамсы
             if Config.Chams_Enabled then
                 if not objs.Chams.Parent then objs.Chams.Parent = pChar end
                 objs.Chams.FillColor = targetColor objs.Chams.Enabled = true
-            else objs.Chams.Enabled = false end
+            else 
+                objs.Chams.Enabled = false 
+            end
 
             -- Скелеты
             if Config.Skeleton_Enabled then
@@ -225,7 +301,10 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
                 for l = 1, #objs.Lines do objs.Lines[l].Frame.Visible = false end
             end
         else
-            objs.BBGui.Enabled = false objs.Chams.Enabled = false
+            objs.BBGui.Enabled = false 
+            objs.Chams.Enabled = false
+            objs.Box.Visible = false
+            objs.HP.Visible = false
             for l = 1, #objs.Lines do objs.Lines[l].Frame.Visible = false end
         end
     end
