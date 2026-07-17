@@ -1,14 +1,14 @@
 local Visuals = {}
 local PlayerVisuals = {}
 local StorageVisuals = {}
-local UIOverlayGui -- Наш новый ScreenGui контейнер для 2D элементов!
+local UIOverlayGui
 
 function Visuals.Init(Config, ChamsConfig, FriendsList)
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
     local CoreGui = game:GetService("CoreGui")
     
-    -- ФИКС: Создаем настоящий ScreenGui для отрисовки боксов и скелетов на экране!
+    -- Контейнер для стабильного 2D рендеринга на экране
     UIOverlayGui = Instance.new("ScreenGui")
     UIOverlayGui.Name = "Grimoire_Render_Bypass"
     UIOverlayGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -28,7 +28,7 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
     local function CreatePlayerESP(player)
         if player == LocalPlayer then return end
         
-        --Billboard для имени (Остается сверху)
+        -- Никнейм сверху
         local BBGui = Instance.new("BillboardGui")
         BBGui.Size = UDim2.new(0, 200, 0, 30)
         BBGui.StudsOffset = Vector3.new(0, 3.5, 0)
@@ -44,10 +44,10 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
         NameLabel.TextStrokeTransparency = 0
         NameLabel.Parent = BBGui
 
-        --Billboard для оружия (ТЕПЕРЬ СДВИГАЕМ ВНИЗ, ПОД СИЛУЭТ!)
+        -- Оружие строго под ногами (Как на скриншоте Джека!)
         local BBGuiWeapon = Instance.new("BillboardGui")
         BBGuiWeapon.Size = UDim2.new(0, 200, 0, 20)
-        BBGuiWeapon.StudsOffset = Vector3.new(0, -3.5, 0) -- Отрицательное смещение = строго внизу!
+        BBGuiWeapon.StudsOffset = Vector3.new(0, -3.5, 0) -- Отрицательный сдвиг
         BBGuiWeapon.AlwaysOnTop = true
         BBGuiWeapon.Enabled = false
         BBGuiWeapon.Parent = UIOverlayGui
@@ -61,7 +61,7 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
         WeaponLabel.TextSize = 10
         WeaponLabel.Parent = BBGuiWeapon
 
-        -- Рамка бокса (Теперь внутри ScreenGui!)
+        -- Рамка бокса внутри ScreenGui
         local BoxFrame = Instance.new("Frame")
         BoxFrame.BackgroundTransparency = 1
         BoxFrame.BorderSizePixel = 1
@@ -69,14 +69,14 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
         BoxFrame.Visible = false
         BoxFrame.Parent = UIOverlayGui
 
-        -- HP Bar (Внутри ScreenGui!)
+        -- Полоска здоровья
         local HPBar = Instance.new("Frame")
         HPBar.BorderSizePixel = 0
         HPBar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
         HPBar.Visible = false
         HPBar.Parent = UIOverlayGui
 
-        -- Круг головы скелета
+        -- Круг на голове скелета
         local HeadCircle = Instance.new("Frame")
         HeadCircle.Size = UDim2.new(0, 12, 0, 12)
         HeadCircle.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -136,7 +136,7 @@ function Visuals.Init(Config, ChamsConfig, FriendsList)
     Players.PlayerAdded:Connect(CreatePlayerESP)
     for _, p in pairs(Players:GetPlayers()) do CreatePlayerESP(p) end
 
-    -- Safe Scanner
+    -- Сканер ящиков
     local function DeepDistributedStorageScan()
         if not Config.Storage_Enabled or not Config.ESP_Enabled then 
             for obj, objs in pairs(StorageVisuals) do pcall(function() objs.BB:Destroy() objs.High:Destroy() end) StorageVisuals[obj] = nil end
@@ -219,6 +219,24 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
     local Camera = workspace.CurrentCamera
     local inset = GuiService:GetGuiInset()
 
+    if not _G.OrigAmbient then _G.OrigAmbient = Lighting.Ambient end
+    if not _G.OrigOutdoor then _G.OrigOutdoor = Lighting.OutdoorAmbient end
+
+    -- Регулируемый Fullbright и Ambient Color Changer
+    if Config.Fullbright_Enabled then
+        if Config.Ambient_Custom then
+            Lighting.Ambient = Color3.fromRGB(140, 90, 180) -- Приятный неоновый фиолетовый
+            Lighting.OutdoorAmbient = Color3.fromRGB(60, 40, 90)
+        else
+            local g = Config.Fullbright_Gamma
+            Lighting.Ambient = Color3.fromRGB(g, g, g)
+            Lighting.OutdoorAmbient = Color3.fromRGB(g, g, g)
+        end
+    else
+        Lighting.Ambient = _G.OrigAmbient
+        Lighting.OutdoorAmbient = _G.OrigOutdoor
+    end
+
     for player, objs in pairs(PlayerVisuals) do
         local pChar = objs.GetChar()
         local pHum = pChar and pChar:FindFirstChildOfClass("Humanoid")
@@ -255,7 +273,7 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
                 objs.Weapon.Text = currentWeapon
             end
 
-            -- Отрисовка 2D Боксов ПОВЕРХ ScreenGui
+            -- Отрисовка 2D боксов
             local headPos, headOnScreen = Camera:WorldToViewportPoint(pHead.Position + Vector3.new(0, 1.2, 0))
             local legPos, legOnScreen = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3.2, 0))
 
@@ -287,7 +305,7 @@ function Visuals.Update(Config, ChamsConfig, FriendsList)
                 objs.Chams.FillColor = targetColor objs.Chams.Enabled = true
             else objs.Chams.Enabled = false end
 
-            -- Отрисовка Скелетов ПОВЕРХ ScreenGui
+            -- Отрисовка скелетов с кружком на голове
             if Config.Skeleton_Enabled then
                 local sHeadPos, headScreen = Camera:WorldToViewportPoint(pHead.Position)
                 if headScreen then
