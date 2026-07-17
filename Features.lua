@@ -7,12 +7,12 @@ function Features.Update(Config, FriendsList, char, hrp, hum)
     local Camera = workspace.CurrentCamera
     local Mouse = LocalPlayer:GetMouse()
 
-    -- Инициализируем переменные движения во внутреннем контексте, если их еще нет
+    -- Инициализируем переменные движения
     if not _G.fcCFrame then _G.fcCFrame = Camera.CFrame end
     if not _G.rotX then _G.rotX = 0 end
     if not _G.rotY then _G.rotY = 0 end
 
-    -- 1. Freecam Engine
+    -- 1. Исправленный Freecam
     if Config.Freecam_Enabled then
         Camera.CameraType = Enum.CameraType.Scriptable
         if hrp and not hrp.Anchored then hrp.Anchored = true end
@@ -34,52 +34,54 @@ function Features.Update(Config, FriendsList, char, hrp, hum)
         if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveVector = moveVector + _G.fcCFrame.RightVector end
         _G.fcCFrame = _G.fcCFrame + (moveVector * Config.Freecam_Speed)
         Camera.CFrame = _G.fcCFrame
+    else
+        if Camera.CameraType == Enum.CameraType.Scriptable then
+            Camera.CameraType = Enum.CameraType.Custom
+            if hrp and hrp.Anchored then hrp.Anchored = false end
+        end
     end
 
-    -- 2. Triggerbot
+    -- 2. Triggerbot (ИСПРАВЛЕННЫЙ)
     if Config.Triggerbot_Enabled and Config.ESP_Enabled then
         local target = Mouse.Target
-        if target and target.Parent and target.Parent:FindFirstChildOfClass("Humanoid") then
-            local tPlayer = Players:GetPlayerFromCharacter(target.Parent)
-            if tPlayer and tPlayer ~= LocalPlayer and not FriendsList[tPlayer.Name] then
-                if UserInputService:IsKeyDown(Config.Triggerbot_Bind) then
-                    mouse1click()
+        if target and target.Parent then
+            local targetChar = target.Parent:IsA("Model") and target.Parent or target.Parent.Parent
+            local targetHum = targetChar and targetChar:FindFirstChildOfClass("Humanoid")
+            if targetHum and targetHum.Health > 0 then
+                local tPlayer = Players:GetPlayerFromCharacter(targetChar)
+                if tPlayer and tPlayer ~= LocalPlayer and not FriendsList[tPlayer.Name] then
+                    if UserInputService:IsKeyDown(Config.Triggerbot_Bind) then
+                        mouse1click()
+                    end
                 end
             end
         end
     end
 
-    -- 3. No Fall
-    if Config.NoFall_Enabled and Config.ESP_Enabled and hrp then
+    -- 3. No Fall Damage (ИСПРАВЛЕННЫЙ)
+    if Config.NoFall_Enabled and hrp then
         if hrp.Velocity.Y < -35 then
-            hrp.Velocity = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z)
+            hrp.Velocity = Vector3.new(hrp.Velocity.X, -5, hrp.Velocity.Z) -- Плавно гасим скорость вместо резкого нуля
         end
     end
 
-    -- 4. Infinite Stamina
-    if Config.InfStamina_Enabled and Config.ESP_Enabled and char then
-        local energy = char:FindFirstChild("Stamina") or char:FindFirstChild("Energy")
-        if energy and energy:IsA("ValueBase") then energy.Value = 100 end
+    -- 4. Infinite Stamina (ИСПРАВЛЕННЫЙ)
+    if Config.InfStamina_Enabled and char then
+        -- Находим скрытые значения стамины в Criminality (они часто лежат в Character или PlayerGui)
+        local stamina = char:FindFirstChild("Stamina") or char:FindFirstChild("Energy") or LocalPlayer:FindFirstChild("Stamina")
+        if stamina and stamina:IsA("ValueBase") then 
+            stamina.Value = 100 
+        end
     end
 
-    -- 5. Auto Bhop
-    if Config.Bhop_Enabled and Config.ESP_Enabled and hum and hrp then
+    -- 5. Auto Bhop (ИСПРАВЛЕННЫЙ)
+    if Config.Bhop_Enabled and hum and hrp then
         if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
             if hum.FloorMaterial ~= Enum.Material.Air then
-                hrp.Velocity = Vector3.new(hrp.Velocity.X, 50, hrp.Velocity.Z)
+                hum.Jump = true
+                task.wait(0.01) -- Микро-задержка для обхода анти-спама прыжков
             end
         end
-    end
-
-    -- 6. No Recoil
-    if Config.NoRecoil_Enabled and Config.ESP_Enabled and char then
-        pcall(function()
-            local tool = char:FindFirstChildOfClass("Tool")
-            if tool and tool:FindFirstChild("Configuration") then
-                local rec = tool.Configuration:FindFirstChild("Recoil") or tool.Configuration:FindFirstChild("Spread")
-                if rec then rec.Value = 0 end
-            end
-        end)
     end
 end
 
