@@ -1,44 +1,68 @@
 -- =========================================================================
---                     GRIMOIRE.CC // CONFIG MODULE (V16)
+--                     GRIMOIRE.CC // V15 FINAL LOADER
 -- =========================================================================
-local Color3 = Color3 or _G.Color3 or game:GetService("Players").LocalPlayer.Character and Color3
-local Enum = Enum or _G.Enum
+repeat task.wait() until game:IsLoaded()
 
-local Config = {
-    MenuOpen = true,
-    ESP_Enabled = false,
-    ESP_Boxes = false,
-    ShowNames = false,
-    ShowHP = false,
-    ShowWeapon = false,
-    
-    Chams_Enabled = false,
-    Skeleton_Enabled = false,
-    Fullbright_Enabled = false,
-    Fullbright_Gamma = 160,
-    
-    Storage_Enabled = false,
-    Storage_Safes = true,
-    Storage_Registers = true,
-    Storage_Loot = true,
-    
-    Freecam_Enabled = false,
-    Freecam_Bind = typeof(Enum) ~= "nil" and Enum.KeyCode.F or nil,
-    Freecam_Speed = 1.2,
-    
-    NoFall_Enabled = false,
-    InfStamina_Enabled = false,
-    Bhop_Enabled = false
-}
+local GITHUB_USER = "Undetected7"
+local REPO_NAME = "criminality"
+local BRANCH = "main"
+local BaseUrl = string.format("https://raw.githubusercontent.com/%s/%s/%s/", GITHUB_USER, REPO_NAME, BRANCH)
 
-local ChamsConfig = {
-    EnemyColor = Color3 and Color3.fromRGB(255, 0, 128) or nil,
-    FriendColor = Color3 and Color3.fromRGB(0, 255, 100) or nil,
-    StorageColor = Color3 and Color3.fromRGB(255, 200, 0) or nil,
-    OutlineColor = Color3 and Color3.fromRGB(255, 255, 255) or nil,
-    FillTransparency = 0.5
-}
+local function SafeLoad(fileName)
+    local url = BaseUrl .. fileName .. "?rand=" .. math.random(1000, 9999)
+    local success, content = pcall(function() return game:HttpGet(url) end)
+    
+    if not success or not content then
+        warn(string.format("[Grimoire.cc] Бля, не удалось скачать файл: %s", fileName))
+        return nil
+    end
+    
+    local linker, err = loadstring(content)
+    if not linker then
+        warn(string.format("[Grimoire.cc] Ошибка компиляции %s: %s", fileName, tostring(err)))
+        return nil
+    end
+    
+    local runSuccess, result = pcall(linker)
+    if not runSuccess then
+        warn(string.format("[Grimoire.cc] Ошибка выполнения %s: %s", fileName, tostring(result)))
+        return nil
+    end
+    
+    return result
+end
 
-local FriendsList = {}
+print("[Grimoire] Синтез запущен... Пожалуйста, подожди, Джекки!")
 
-return {Config = Config, ChamsConfig = ChamsConfig, FriendsList = FriendsList}
+local ConfigData = SafeLoad("Config.lua")
+if ConfigData then
+    _G.GrimoireConfig = ConfigData.Config
+    _G.GrimoireChams = ConfigData.ChamsConfig
+    _G.GrimoireFriends = ConfigData.FriendsList
+
+    local UI = SafeLoad("UI.lua")
+    local Features = SafeLoad("Features.lua")
+    local Visuals = SafeLoad("Visuals.lua")
+
+    if UI and Features and Visuals then
+        UI.Init(_G.GrimoireConfig, _G.GrimoireFriends)
+        Visuals.Init(_G.GrimoireConfig, _G.GrimoireChams, _G.GrimoireFriends)
+
+        game:GetService("RunService").RenderStepped:Connect(function()
+            local char = game.Players.LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            
+            Features.Update(_G.GrimoireConfig, _G.GrimoireFriends, char, hrp, hum)
+            Visuals.Update(_G.GrimoireConfig, _G.GrimoireChams, _G.GrimoireFriends)
+        end)
+        
+        print("[Grimoire] ==========================================")
+        print("[Grimoire] ВСЁ ГОТОВО, МОЙ СЛАДКИЙ! Нажимай INSERT!")
+        print("[Grimoire] ==========================================")
+    else
+        warn("[Grimoire] Ошибка сборки модулей. Проверь консоль!")
+    end
+else
+    warn("[Grimoire] Сука, не удалось загрузить конфигурационный файл!")
+end
