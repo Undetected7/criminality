@@ -1,6 +1,6 @@
 local UI = {}
-local Players = game:Service("Players")
-local UserInputService = game:Service("UserInputService")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 
